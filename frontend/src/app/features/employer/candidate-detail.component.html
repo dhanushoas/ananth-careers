@@ -1,0 +1,251 @@
+<nav aria-label="Breadcrumb">
+  <ol class="breadcrumb small">
+    <li class="breadcrumb-item"><a routerLink="/employer/candidates">Submitted candidates</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ sub()?.candidate?.name ?? 'Candidate' }}</li>
+  </ol>
+</nav>
+
+@if (loading() && !sub()) {
+  <app-skeleton variant="card" [count]="3" />
+} @else if (error()) {
+  <app-empty-state
+    tone="error"
+    [illustration]="error() === 'not-found' ? 'not-found' : 'error'"
+    [title]="error() === 'not-found' ? 'Candidate not found' : 'Candidate could not be loaded'"
+    message="This submission may have been withdrawn, or it belongs to another company."
+  >
+    <a class="btn btn-outline-primary" routerLink="/employer/candidates"><i class="bi bi-arrow-left" aria-hidden="true"></i>Back to submitted candidates</a>
+    @if (error() === 'error') {
+      <button class="btn btn-primary" type="button" (click)="load()"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i>Retry</button>
+    }
+  </app-empty-state>
+} @else if (sub(); as s) {
+  @let p = s.candidateProfile;
+  <section class="hero card mb-4">
+    <div class="band" aria-hidden="true"></div>
+    <div class="card-body hero-body">
+      <span class="avatar" aria-hidden="true">{{ s.candidate.name.charAt(0) }}</span>
+      <div class="grow">
+        <h1 class="h3 mb-1">{{ s.candidate.name }}</h1>
+        @if (p?.headline) { <p class="text-secondary mb-2">{{ p?.headline }}</p> }
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+          <app-status-chip [status]="s.status" [label]="label()" />
+          <span class="badge text-bg-light border"><i class="bi bi-clipboard-check" aria-hidden="true"></i> {{ s.job.title }}</span>
+          <span class="small text-secondary">Submitted {{ s.createdAt | date: 'mediumDate' }}</span>
+        </div>
+      </div>
+      <button class="btn btn-gold" type="button" (click)="download()" [disabled]="!resumeId() || downloading()" data-testid="download-resume">
+        @if (downloading()) { <span class="spinner-border spinner-border-sm" aria-hidden="true"></span> } @else { <i class="bi bi-file-earmark-arrow-down" aria-hidden="true"></i> }
+        Download resume
+      </button>
+    </div>
+  </section>
+
+  <div class="layout">
+    <div class="main">
+      @if (s.recruiterSummary) {
+        <section class="card summary-card">
+          <div class="card-body">
+            <h2 class="h6"><i class="bi bi-patch-check-fill text-gold" aria-hidden="true"></i> Why Veejee Services recommends this candidate</h2>
+            <p class="mb-0 prose">{{ s.recruiterSummary }}</p>
+            @if (recruiterName()) {
+              <p class="small text-secondary mt-2 mb-0">— {{ recruiterName() }}, Veejee Services recruiter</p>
+            }
+          </div>
+        </section>
+      }
+
+      <section class="card">
+        <div class="card-header"><h2 class="h6 mb-0"><i class="bi bi-person-vcard text-gold" aria-hidden="true"></i> Profile</h2></div>
+        <div class="card-body">
+          <dl class="facts">
+            <div><dt>Experience</dt><dd>{{ p?.totalExperienceYears ?? 0 }} years</dd></div>
+            <div><dt>Career level</dt><dd>{{ (p?.careerLevel | enumLabel) || '—' }}</dd></div>
+            <div><dt>Location</dt><dd>{{ locationText() || '—' }}</dd></div>
+            <div><dt>Notice period</dt><dd>{{ p?.noticePeriodDays ?? '—' }}{{ p?.noticePeriodDays !== undefined && p?.noticePeriodDays !== null ? ' days' : '' }}</dd></div>
+            <div><dt>Availability</dt><dd>{{ (p?.availability | enumLabel) || '—' }}</dd></div>
+            <div><dt>Expected salary</dt><dd>{{ salary() || 'Not shared' }}</dd></div>
+          </dl>
+          @if (p?.summary) {
+            <h3 class="h6 mt-3">Summary</h3>
+            <p class="prose mb-0">{{ p?.summary }}</p>
+          }
+          @if (preferredRoles()) {
+            <h3 class="h6 mt-3">Preferred roles</h3>
+            <p class="mb-0">{{ preferredRoles() }}</p>
+          }
+        </div>
+      </section>
+
+      @if (skills().technical.length || skills().soft.length) {
+        <section class="card">
+          <div class="card-header"><h2 class="h6 mb-0"><i class="bi bi-stars text-gold" aria-hidden="true"></i> Skills</h2></div>
+          <div class="card-body">
+            @if (skills().technical.length) {
+              <h3 class="sub-h">Technical</h3>
+              <ul class="skills">
+                @for (k of skills().technical; track k.name) {
+                  <li class="badge skill">{{ k.name }}@if (k.level) { <span class="lvl">· {{ k.level | enumLabel }}</span> }</li>
+                }
+              </ul>
+            }
+            @if (skills().soft.length) {
+              <h3 class="sub-h mt-3">Non-technical</h3>
+              <ul class="skills">
+                @for (k of skills().soft; track k.name) {
+                  <li class="badge skill soft">{{ k.name }}</li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+      }
+
+      @if (experience().length) {
+        <section class="card">
+          <div class="card-header"><h2 class="h6 mb-0"><i class="bi bi-briefcase text-gold" aria-hidden="true"></i> Experience</h2></div>
+          <div class="card-body">
+            <ol class="tl">
+              @for (x of experience(); track $index) {
+                <li>
+                  <strong>{{ x.title }}</strong> · {{ x.company }}
+                  <span class="d-block small text-secondary">
+                    {{ x.startDate | date: 'MMM y' }} – {{ x.current ? 'Present' : (x.endDate | date: 'MMM y') }}{{ x.location ? ' · ' + x.location : '' }}
+                  </span>
+                  @if (x.description) { <p class="small mb-0 mt-1 prose">{{ x.description }}</p> }
+                </li>
+              }
+            </ol>
+          </div>
+        </section>
+      }
+
+      @if (education().length) {
+        <section class="card">
+          <div class="card-header"><h2 class="h6 mb-0"><i class="bi bi-mortarboard text-gold" aria-hidden="true"></i> Education</h2></div>
+          <div class="card-body">
+            <ul class="list-unstyled d-grid gap-2 mb-0">
+              @for (e of education(); track $index) {
+                <li>
+                  <strong>{{ e.qualification }}</strong>{{ e.specialization ? ' – ' + e.specialization : '' }}
+                  <span class="d-block small text-secondary">{{ e.institution }}{{ e.endYear ? ' · ' + e.endYear : '' }}{{ e.grade ? ' · ' + e.grade : '' }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+        </section>
+      }
+
+      <section class="card">
+        <div class="card-header"><h2 class="h6 mb-0"><i class="bi bi-calendar2-event text-gold" aria-hidden="true"></i> Interviews</h2></div>
+        <div class="card-body">
+          @if (s.interviewRequest; as ir) {
+            <div class="alert alert-info small py-2">
+              <i class="bi bi-hourglass-split" aria-hidden="true"></i>
+              Interview requested{{ ir.requestedAt ? ' on ' + (ir.requestedAt | date: 'mediumDate') : '' }} — Veejee Services is arranging a time.
+              @if (ir.note) { <span class="d-block mt-1">“{{ ir.note }}”</span> }
+            </div>
+          }
+          @for (iv of interviews(); track iv.id) {
+            <div class="iv">
+              <span class="iv-ic"><i [class]="'bi ' + modeIcon(iv.mode)" aria-hidden="true"></i></span>
+              <div class="grow">
+                <strong>{{ iv.scheduledAt | date: 'EEE, d MMM y, h:mm a' }}</strong>
+                <span class="d-block small text-secondary">{{ iv.mode | enumLabel }} · {{ iv.durationMinutes }} min{{ iv.location ? ' · ' + iv.location : '' }}</span>
+                @if (iv.meetingLink) {
+                  <a class="small" [href]="iv.meetingLink" target="_blank" rel="noopener noreferrer">Join meeting <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i></a>
+                }
+              </div>
+              <app-status-chip [status]="iv.status" />
+              @if (hasFeedback(iv)) {
+                <span class="badge text-bg-success">Feedback sent</span>
+              } @else if (iv.status !== 'cancelled') {
+                <button class="btn btn-sm btn-outline-primary" type="button" (click)="giveFeedback(iv)" [disabled]="!canFeedback(iv)"
+                  [attr.title]="canFeedback(iv) ? null : 'Feedback can be given after the interview time'">
+                  <i class="bi bi-chat-square-text" aria-hidden="true"></i> Give feedback
+                </button>
+              }
+            </div>
+          } @empty {
+            @if (!s.interviewRequest) {
+              <p class="text-secondary small mb-0">No interviews yet. Use “Request interview” and Veejee Services will coordinate a slot with the candidate.</p>
+            }
+          }
+          @if (feedbackList().length) {
+            <h3 class="sub-h mt-3">Your feedback</h3>
+            <ul class="list-unstyled d-grid gap-2 mb-0">
+              @for (f of feedbackList(); track $index) {
+                <li class="fb">
+                  <span class="stars" [attr.aria-label]="f.rating + ' out of 5'">
+                    @for (n of [1, 2, 3, 4, 5]; track n) {
+                      <i [class]="n <= f.rating ? 'bi bi-star-fill' : 'bi bi-star'" aria-hidden="true"></i>
+                    }
+                  </span>
+                  <app-status-chip [status]="f.recommendation" />
+                  <p class="small mb-0 mt-1">{{ f.feedback }}</p>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </section>
+    </div>
+
+    <aside class="aside">
+      <section class="card decision">
+        <div class="card-body d-grid gap-2">
+          <h2 class="h6 mb-1"><i class="bi bi-ui-checks text-gold" aria-hidden="true"></i> Your decision</h2>
+          @if (canDecide()) {
+            <button class="btn btn-success" type="button" (click)="accept()" [disabled]="busy()"><i class="bi bi-check2-circle" aria-hidden="true"></i>Accept candidate</button>
+            @if (canRequestInterview()) {
+              <button class="btn btn-primary" type="button" (click)="requestInterview()" [disabled]="busy()"><i class="bi bi-calendar-plus" aria-hidden="true"></i>Request interview</button>
+            }
+            @if (s.status !== 'on_hold') {
+              <button class="btn btn-outline-secondary" type="button" (click)="hold()" [disabled]="busy()"><i class="bi bi-pause-circle" aria-hidden="true"></i>Put on hold</button>
+            }
+            <button class="btn btn-outline-danger" type="button" (click)="reject()" [disabled]="busy()"><i class="bi bi-x-circle" aria-hidden="true"></i>Reject</button>
+          } @else {
+            <p class="small text-secondary mb-0">This submission is closed ({{ label() }}). Contact your Veejee Services account manager for changes.</p>
+          }
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-body">
+          <h2 class="h6"><i class="bi bi-person-lines-fill text-gold" aria-hidden="true"></i> Contact details</h2>
+          @if (s.contactShared && (s.candidate.email || s.candidate.mobile)) {
+            <ul class="list-unstyled mb-0 d-grid gap-1" data-testid="candidate-contact">
+              @if (s.candidate.email) { <li><i class="bi bi-envelope me-2" aria-hidden="true"></i><a [href]="'mailto:' + s.candidate.email">{{ s.candidate.email }}</a></li> }
+              @if (s.candidate.mobile) { <li><i class="bi bi-telephone me-2" aria-hidden="true"></i><a [href]="'tel:' + s.candidate.mobile">{{ s.candidate.mobile }}</a></li> }
+            </ul>
+          } @else {
+            <p class="small text-secondary mb-0">
+              <i class="bi bi-shield-lock me-1" aria-hidden="true"></i>
+              Contact details are shared by Veejee Services on request / with consent. Veejee Services coordinates all communication with the candidate.
+            </p>
+          }
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-body">
+          <h2 class="h6"><i class="bi bi-clock-history text-gold" aria-hidden="true"></i> Timeline</h2>
+          <ol class="timeline">
+            @for (h of history(); track $index; let first = $first) {
+              <li [class.current]="first">
+                <span class="dot" aria-hidden="true"></span>
+                <div>
+                  <strong class="d-block small">{{ h.status | enumLabel }}</strong>
+                  <span class="small text-secondary">{{ h.at | date: 'medium' }}{{ h.byRole ? ' · ' + (h.byRole === 'company' ? 'You' : 'Veejee Services') : '' }}</span>
+                  @if (h.note) { <p class="small mb-0 note">{{ h.note }}</p> }
+                </div>
+              </li>
+            } @empty {
+              <li class="small text-secondary">No updates yet.</li>
+            }
+          </ol>
+        </div>
+      </section>
+    </aside>
+  </div>
+}

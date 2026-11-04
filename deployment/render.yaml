@@ -1,0 +1,55 @@
+# Render Blueprint – Veejee Services API on Render's FREE plan.
+# Render → New → Blueprint → repo dhanushoas/ananth-careers, branch ananth-platform,
+# Blueprint path: deployment/render.yaml. Values marked `sync: false` are entered in the dashboard.
+#
+# Free-plan notes:
+#  • the service sleeps after 15 min without traffic; the first request then takes ~50 s
+#  • outbound SMTP is blocked → email goes through Brevo's HTTPS API (BREVO_API_KEY)
+#  • no persistent disk → uploaded files are stored (encrypted) inside MongoDB via GridFS
+services:
+  - type: web
+    name: veejee-services-api
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: npm ci --include=dev && npm run build
+    # Sync indexes, ensure industries/settings/first admin, then start (pre-deploy hooks are paid-only).
+    startCommand: node dist/scripts/seed.js --indexes && node dist/server.js
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 24.21.0
+      - key: MONGOMS_DISABLE_POSTINSTALL
+        value: '1' # dev-only test database download – not needed on the server
+      - key: FRONTEND_URL
+        value: https://ananth-careers.vercel.app
+      - key: CORS_ORIGINS
+        value: https://ananth-careers.vercel.app
+      - key: TRUST_PROXY
+        value: '2' # browser → Vercel edge → Render proxy → app
+      - key: LOG_LEVEL
+        value: info
+      - key: STORAGE_DRIVER
+        value: mongo
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: MONGODB_URI
+        sync: false
+      - key: FILE_ENCRYPTION_KEY
+        sync: false # 32 random bytes, base64 – keep a backup; changing it makes stored files unreadable
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false # e.g. Veejee Services <your-verified-sender@gmail.com>
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: SEED_ADMIN_EMAIL
+        sync: false # first super admin (created once on first start)
+      - key: SEED_ADMIN_PASSWORD
+        sync: false # ≥ 12 characters
+      - key: SEED_ADMIN_MOBILE
+        sync: false

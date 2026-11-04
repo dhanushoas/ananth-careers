@@ -1,0 +1,156 @@
+// Veejee Services background patterns, bands and motion utilities (original CSS; tiny data-URI SVGs only).
+
+// Dot grid (navy dots on light surfaces)
+.bg-dots {
+  background-image: radial-gradient(rgba(11, 42, 91, 0.09) 1.2px, transparent 1.3px);
+  background-size: 18px 18px;
+}
+
+// White dots for dark/navy bands
+.bg-dots-light {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1.2px, transparent 1.3px);
+  background-size: 18px 18px;
+}
+
+// Subtle diagonal lines
+.bg-diagonal {
+  background-image: repeating-linear-gradient(135deg, rgba(11, 42, 91, 0.035) 0 1px, transparent 1px 14px);
+}
+
+// Fine grid lines
+.bg-grid-lines {
+  background-image:
+    linear-gradient(rgba(11, 42, 91, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(11, 42, 91, 0.05) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+// Soft blurred gold & navy blobs behind content
+.bg-blobs {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    pointer-events: none;
+    border-radius: 50%;
+    filter: blur(48px);
+  }
+  &::before {
+    width: min(420px, 70vw);
+    height: min(420px, 70vw);
+    top: -120px;
+    right: -100px;
+    background: radial-gradient(circle, rgba(247, 130, 27, 0.28), transparent 70%);
+  }
+  &::after {
+    width: min(380px, 65vw);
+    height: min(380px, 65vw);
+    bottom: -140px;
+    left: -120px;
+    background: radial-gradient(circle, rgba(43, 74, 120, 0.22), transparent 70%);
+  }
+}
+
+// Layered navy hero band
+.hero-navy {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  color: #fff;
+  background:
+    radial-gradient(circle at 88% 8%, rgba(247, 130, 27, 0.22) 0, transparent 38%),
+    radial-gradient(circle at 0% 100%, rgba(43, 74, 120, 0.7) 0, transparent 52%),
+    linear-gradient(160deg, #0B2A5B 0%, #0d2445 45%, #0A1F44 100%);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1.2px, transparent 1.3px);
+    background-size: 20px 20px;
+    mask-image: linear-gradient(180deg, #000 0%, transparent 85%);
+  }
+  &::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    pointer-events: none;
+    width: 340px;
+    height: 340px;
+    right: -120px;
+    bottom: -160px;
+    border-radius: 50%;
+    border: 1px solid rgba(230, 205, 120, 0.18);
+    box-shadow:
+      0 0 0 40px rgba(230, 205, 120, 0.04),
+      0 0 0 80px rgba(230, 205, 120, 0.025);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: #fff;
+  }
+}
+
+// Soft gold band
+.band-gold {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(255, 255, 255, 0.7) 0, transparent 45%),
+    linear-gradient(120deg, #FEF0E3 0%, #fdf8ea 55%, #f3e3ad 100%);
+  border-block: 1px solid #efdfa8;
+}
+
+// White alternate section
+.section-alt {
+  background: #ffffff;
+  border-block: 1px solid #dfe5ee;
+}
+
+// Scroll reveal (driven by RevealDirective)
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 500ms cubic-bezier(0.2, 0, 0, 1) var(--reveal-delay, 0ms),
+    transform 500ms cubic-bezier(0.2, 0, 0, 1) var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+.reveal.revealed,
+.revealed {
+  opacity: 1;
+  transform: none;
+}
+
+// Gentle float
+@keyframes an-float-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+.float-slow {
+  animation: an-float-slow 7s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .float-slow {
+    animation: none;
+  }
+}

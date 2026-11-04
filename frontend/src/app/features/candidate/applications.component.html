@@ -1,0 +1,143 @@
+<app-page-header title="My applications" eyebrow="Candidate" illustration="applications"
+  subtitle="Applications you made through Veejee Services, and companies your profile was shared with (only with your consent)." />
+
+<ul class="nav nav-tabs nav-scroll mb-4" role="tablist" aria-label="Applications">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" type="button" role="tab" id="tab-apps" aria-controls="panel-apps" [class.active]="activeTab() === 'applications'"
+      [attr.aria-selected]="activeTab() === 'applications'" (click)="setTab('applications')">
+      <i class="bi bi-inbox" aria-hidden="true"></i> Applications to Veejee Services
+      @if (applications.value(); as p) { <span class="badge text-bg-light border">{{ p.total }}</span> }
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" type="button" role="tab" id="tab-shared" aria-controls="panel-shared" [class.active]="activeTab() === 'shared'"
+      [attr.aria-selected]="activeTab() === 'shared'" (click)="setTab('shared')">
+      <i class="bi bi-buildings" aria-hidden="true"></i> Shared with companies
+      @if (submissions.value(); as s) { <span class="badge text-bg-light border">{{ s.length }}</span> }
+    </button>
+  </li>
+</ul>
+
+@if (activeTab() === 'applications') {
+  <section role="tabpanel" id="panel-apps" aria-labelledby="tab-apps">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+      <p class="text-secondary small mb-0">Our recruiters review every application and shortlist suitable candidates for the client.</p>
+      <div class="form-floating filter">
+        <select class="form-select" id="app-status-filter" (change)="onStatusChange($event)" data-testid="status-filter">
+          <option value="" [selected]="!statusFilter()">All statuses</option>
+          @for (s of statuses; track s) {
+            <option [value]="s" [selected]="s === statusFilter()">{{ s | enumLabel }}</option>
+          }
+        </select>
+        <label for="app-status-filter">Status</label>
+      </div>
+    </div>
+
+    @if (applications.isLoading() && !applications.value()) {
+      <app-skeleton variant="table" [count]="4" />
+    } @else if (applications.error()) {
+      <app-empty-state tone="error" illustration="error" title="We couldn't load your applications">
+        <button class="btn btn-primary" type="button" (click)="applications.reload()"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Retry</button>
+      </app-empty-state>
+    } @else if (applications.value(); as p) {
+      @if (p.items.length) {
+        <ul class="list-unstyled d-flex flex-column gap-3 mb-0">
+          @for (a of p.items; track a.id) {
+            <li data-testid="application-item" class="card item">
+              <div class="card-body">
+                <div class="d-flex flex-wrap align-items-start gap-3">
+                  <span class="ic" aria-hidden="true"><i class="bi bi-briefcase"></i></span>
+                  <div class="flex-grow-1 min-w-0">
+                    <h3 class="h6 mb-1 title">
+                      <a [routerLink]="['/candidate/applications', a.id]">{{ a.job.title }}</a>
+                    </h3>
+                    <p class="small text-secondary mb-0">
+                      <i class="bi bi-buildings" aria-hidden="true"></i> {{ company(a) }}
+                      @if (a.job.locations?.length) {
+                        · <i class="bi bi-geo-alt" aria-hidden="true"></i> {{ a.job.locations | locations: 1 }}
+                      }
+                      · Applied {{ a.createdAt | date: 'mediumDate' }}
+                    </p>
+                  </div>
+                  <app-status-chip [status]="a.status" />
+                </div>
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                  <a class="btn btn-sm btn-outline-primary" [routerLink]="['/candidate/applications', a.id]">View details</a>
+                  @if (canWithdraw(a)) {
+                    <button class="btn btn-sm btn-outline-danger" type="button" (click)="withdraw(a)" [disabled]="busyId() === a.id" data-testid="withdraw">
+                      <i class="bi bi-x-circle" aria-hidden="true"></i> Withdraw
+                    </button>
+                  }
+                </div>
+              </div>
+            </li>
+          }
+        </ul>
+        <app-paginator [page]="p.page" [limit]="p.limit" [total]="p.total" [pageSizeOptions]="[10]" (pageChange)="onPage($event)" />
+      } @else {
+        <app-empty-state illustration="empty-applications"
+          [title]="statusFilter() ? 'No applications with this status' : 'No applications yet'"
+          [message]="statusFilter() ? 'Try a different status filter.' : 'Find a suitable role and apply through Veejee Services.'">
+          <a class="btn btn-gold" routerLink="/candidate/jobs"><i class="bi bi-search" aria-hidden="true"></i> Browse jobs</a>
+        </app-empty-state>
+      }
+    }
+  </section>
+} @else {
+  <section role="tabpanel" id="panel-shared" aria-labelledby="tab-shared">
+    <div class="alert alert-info d-flex gap-2" role="note">
+      <i class="bi bi-shield-lock-fill" aria-hidden="true"></i>
+      <span>Veejee Services shares your profile with a company only with your consent. Contact details are shared only if you allowed it.</span>
+    </div>
+    @if (submissions.isLoading()) {
+      <app-skeleton variant="card" [count]="2" />
+    } @else if (submissions.error()) {
+      <app-empty-state tone="error" illustration="error" title="We couldn't load this list">
+        <button class="btn btn-primary" type="button" (click)="submissions.reload()"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Retry</button>
+      </app-empty-state>
+    } @else {
+      <ul class="list-unstyled d-flex flex-column gap-3 mb-0">
+        @for (s of sortedSubmissions(); track s.id) {
+          <li data-testid="submission-item" class="card item">
+            <div class="card-body">
+              <div class="d-flex flex-wrap align-items-start gap-3">
+                <span class="ic" aria-hidden="true"><i class="bi bi-buildings"></i></span>
+                <div class="flex-grow-1 min-w-0">
+                  <h3 class="h6 mb-1 title">{{ s.job.title }}</h3>
+                  <p class="small text-secondary mb-1">{{ s.employer?.companyName ?? 'Veejee Services client' }} · shared {{ s.submittedAt | date: 'mediumDate' }}</p>
+                  <span class="badge rounded-pill" [class]="s.contactShared ? 'badge rounded-pill text-bg-light border' : 'badge rounded-pill text-bg-light border text-secondary'">
+                    <i [class]="s.contactShared ? 'bi bi-telephone' : 'bi bi-telephone-x'" aria-hidden="true"></i>
+                    {{ s.contactShared ? 'Contact details shared' : 'Contact details not shared' }}
+                  </span>
+                </div>
+                <app-status-chip [status]="s.status" />
+              </div>
+              <button class="btn btn-sm btn-link px-0 mt-2" type="button" (click)="toggle(s.id)" [attr.aria-expanded]="expanded() === s.id"
+                [attr.aria-controls]="'sub-' + s.id">
+                <i [class]="expanded() === s.id ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" aria-hidden="true"></i>
+                {{ expanded() === s.id ? 'Hide progress' : 'Show progress' }}
+              </button>
+              @if (expanded() === s.id) {
+                <div class="row g-3 mt-1" [id]="'sub-' + s.id">
+                  <div class="col-12 col-lg-6">
+                    <app-history-timeline [history]="s.history" label="Company progress" />
+                  </div>
+                  <div class="col-12 col-lg-6 d-flex flex-column gap-2">
+                    @for (iv of s.interviews; track iv.id) {
+                      <app-candidate-interview-card [interview]="iv" />
+                    } @empty {
+                      <p class="small text-secondary mb-0">No interviews scheduled yet.</p>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </li>
+        } @empty {
+          <app-empty-state illustration="empty-applications" title="Not shared with any company yet"
+            message="When a Veejee Services recruiter submits your profile to a client company, it will appear here with its progress." />
+        }
+      </ul>
+    }
+  </section>
+}

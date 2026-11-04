@@ -1,0 +1,96 @@
+<app-page-hero eyebrow="Veejee Services" [title]="title()" [subtitle]="subtitle()" [illustration]="art()">
+  @if (policy()?.updatedAt; as updated) {
+    <p class="updated"><i class="bi bi-clock-history" aria-hidden="true"></i> Last updated {{ updated | date: 'longDate' }}</p>
+  }
+</app-page-hero>
+
+<div class="container body">
+  @if (content.isLoading()) {
+    <app-skeleton variant="lines" [count]="8" />
+  } @else if (faq(); as f) {
+    <div class="faq-grid">
+      <div class="accordion" id="faq">
+        @for (item of f.items; track $index; let i = $index) {
+          <div class="accordion-item" appReveal>
+            <h2 class="accordion-header">
+              <button class="accordion-button" [class.collapsed]="openFaq() !== i" type="button" (click)="toggleFaq(i)"
+                [attr.aria-expanded]="openFaq() === i" [attr.aria-controls]="'faq-' + i">
+                <i class="bi bi-question-circle text-gold me-2" aria-hidden="true"></i>{{ item.question }}
+              </button>
+            </h2>
+            <div class="accordion-collapse collapse" [class.show]="openFaq() === i" [id]="'faq-' + i">
+              <div class="accordion-body prose">{{ item.answer }}</div>
+            </div>
+          </div>
+        }
+      </div>
+      <aside class="card help d-none d-lg-block">
+        <div class="card-body text-center">
+          <app-illustration name="contact" class="help-art" />
+          <h2 class="h5">Can't find an answer?</h2>
+          <p class="text-secondary small">Our consultants reply within one business day.</p>
+          <a class="btn btn-primary w-100" routerLink="/contact"><i class="bi bi-envelope" aria-hidden="true"></i> Contact us</a>
+        </div>
+      </aside>
+    </div>
+  } @else if (policy(); as p) {
+    @if (contentKey() === 'about') {
+      <div class="value-grid mb-5">
+        @for (v of values; track v.title; let i = $index) {
+          <div class="card card-hover value" appReveal [appRevealDelay]="i * 80">
+            <div class="card-body">
+              <span class="v-icon"><i [class]="'bi ' + v.icon" aria-hidden="true"></i></span>
+              <h3 class="h6 mt-3 mb-1">{{ v.title }}</h3>
+              <p class="small text-secondary mb-0">{{ v.text }}</p>
+            </div>
+          </div>
+        }
+      </div>
+    }
+    @if (contentKey() === 'services') {
+      <div class="service-grid mb-5">
+        @for (s of services; track s.title; let i = $index) {
+          <div class="card card-hover service" appReveal [appRevealDelay]="i * 60">
+            <div class="card-body">
+              <span class="s-icon"><i [class]="'bi ' + s.icon" aria-hidden="true"></i></span>
+              <h3 class="h6 mt-3 mb-1">{{ s.title }}</h3>
+              <p class="small text-secondary mb-0">{{ s.text }}</p>
+            </div>
+          </div>
+        }
+      </div>
+    }
+    <div class="article-grid" [class.with-toc]="isPolicy() && p.sections.length > 1">
+      @if (isPolicy() && p.sections.length > 1) {
+        <nav class="toc card" aria-label="On this page">
+          <div class="card-body">
+            <strong class="d-block mb-2"><i class="bi bi-list-ul" aria-hidden="true"></i> On this page</strong>
+            <ol class="mb-0">
+              @for (s of p.sections; track $index) {
+                <li><a [href]="'#section-' + $index" (click)="scrollTo($event, $index)">{{ s.heading }}</a></li>
+              }
+            </ol>
+          </div>
+        </nav>
+      }
+      <article class="article">
+        @for (s of p.sections; track $index) {
+          <section [id]="'section-' + $index" class="sec card" appReveal>
+            <div class="card-body">
+              <h2 class="h4">{{ s.heading }}</h2>
+              <p class="prose mb-0">{{ s.body }}</p>
+            </div>
+          </section>
+        }
+      </article>
+    </div>
+  }
+
+  <aside class="cta hero-navy" appReveal>
+    <div>
+      <h2 class="h4 mb-1">Still have questions?</h2>
+      <p class="mb-0">The Veejee Services team is happy to help candidates and companies alike.</p>
+    </div>
+    <a class="btn btn-gold" routerLink="/contact"><i class="bi bi-chat-dots" aria-hidden="true"></i> Contact us</a>
+  </aside>
+</div>

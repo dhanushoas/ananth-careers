@@ -1,0 +1,488 @@
+<app-page-header title="My profile" eyebrow="Candidate" illustration="profile"
+  subtitle="Veejee Services recruiters use your profile to match you with client requirements. Keep it complete and up to date.">
+  <a class="btn btn-outline-primary" routerLink="/candidate/resumes"><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Resumes</a>
+  <a class="btn btn-light" routerLink="/candidate/settings"><i class="bi bi-shield-lock" aria-hidden="true"></i> Privacy &amp; consent</a>
+</app-page-header>
+
+@if (loading()) {
+  <app-skeleton variant="card" [count]="3" />
+} @else if (loadError()) {
+  <app-empty-state tone="error" illustration="error" title="We couldn't load your profile" message="Please try again in a moment.">
+    <button class="btn btn-primary" type="button" (click)="load()"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Retry</button>
+  </app-empty-state>
+} @else {
+  @if (profile(); as p) {
+    <section class="card completion mb-4" aria-label="Profile completion">
+      <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+          <span class="d-flex align-items-center gap-2">
+            <i class="bi bi-speedometer2 text-gold fs-5" aria-hidden="true"></i>
+            <span><strong class="fs-5">{{ p.profileCompletion ?? 0 }}%</strong> complete</span>
+          </span>
+          <span class="text-secondary small">Updated when you save</span>
+        </div>
+        <div class="progress" role="progressbar" aria-label="Profile completion" [attr.aria-valuenow]="p.profileCompletion ?? 0" aria-valuemin="0" aria-valuemax="100">
+          <div class="progress-bar" [class.bg-success]="(p.profileCompletion ?? 0) >= 100" [style.width.%]="p.profileCompletion ?? 0"></div>
+        </div>
+      </div>
+    </section>
+  }
+
+  <ul class="nav nav-pills nav-scroll tabs mb-3" role="tablist" aria-label="Profile sections">
+    @for (t of tabs; track t.key) {
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" type="button" role="tab" [id]="'tab-' + t.key" [attr.aria-controls]="'panel-' + t.key"
+          [attr.aria-selected]="activeTab() === t.key" [class.active]="activeTab() === t.key" (click)="activeTab.set(t.key)">
+          <i [class]="'bi ' + t.icon" aria-hidden="true"></i> {{ t.label }}
+          @if (tabHasError(t.key)) {
+            <i class="bi bi-exclamation-circle-fill text-danger" aria-label="Has errors"></i>
+          }
+        </button>
+      </li>
+    }
+  </ul>
+
+  <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+    <!-- Personal -->
+    <section class="card" role="tabpanel" id="panel-personal" aria-labelledby="tab-personal" [class.d-none]="activeTab() !== 'personal'">
+      <div class="card-body">
+        <fieldset class="mb-4">
+          <legend class="legend">Career level</legend>
+          <div class="btn-group flex-wrap" role="group" aria-label="Career level">
+            <input type="radio" class="btn-check" id="pf-cl-fresher" formControlName="careerLevel" value="fresher" />
+            <label class="btn btn-outline-primary" for="pf-cl-fresher"><i class="bi bi-mortarboard" aria-hidden="true"></i> Fresher</label>
+            <input type="radio" class="btn-check" id="pf-cl-exp" formControlName="careerLevel" value="experienced" />
+            <label class="btn btn-outline-primary" for="pf-cl-exp"><i class="bi bi-briefcase" aria-hidden="true"></i> Experienced</label>
+          </div>
+        </fieldset>
+        <div class="row g-3 align-items-start">
+          <div class="col-12">
+            <div class="form-floating">
+              <input class="form-control" id="pf-headline" formControlName="headline" maxlength="150" placeholder=" " />
+              <label for="pf-headline">Professional headline</label>
+            </div>
+            <div class="form-text">e.g. Accountant with 3 years in GST and audits</div>
+            <app-field-error [control]="form.controls.headline" label="Headline" />
+          </div>
+          <div class="col-12">
+            <div class="form-floating">
+              <textarea class="form-control summary" id="pf-summary" formControlName="summary" maxlength="2000" placeholder=" "></textarea>
+              <label for="pf-summary">Summary</label>
+            </div>
+            <div class="form-text text-end">{{ form.controls.summary.value.length }} / 2000</div>
+            <app-field-error [control]="form.controls.summary" label="Summary" />
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-floating">
+              <input class="form-control" id="pf-dob" type="date" formControlName="dateOfBirth" placeholder=" " />
+              <label for="pf-dob">Date of birth</label>
+            </div>
+            <div class="form-text">Never shared with client companies.</div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-floating">
+              <select class="form-select" id="pf-gender" formControlName="gender">
+                <option value="">Not specified</option>
+                @for (g of genders; track g) {
+                  <option [value]="g">{{ g | enumLabel }}</option>
+                }
+              </select>
+              <label for="pf-gender">Gender</label>
+            </div>
+            <div class="form-text">Never shared with client companies.</div>
+          </div>
+        </div>
+        <div class="row g-3 align-items-start mt-0" formGroupName="location">
+          <div class="col-12 col-md-4">
+            <div class="form-floating">
+              <input class="form-control" id="pf-city" formControlName="city" autocomplete="address-level2" placeholder=" " />
+              <label for="pf-city">City</label>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="form-floating">
+              <input class="form-control" id="pf-state" formControlName="state" autocomplete="address-level1" placeholder=" " />
+              <label for="pf-state">State</label>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="form-floating">
+              <input class="form-control" id="pf-country" formControlName="country" autocomplete="country-name" placeholder=" " />
+              <label for="pf-country">Country</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Education -->
+    <section class="card" role="tabpanel" id="panel-education" aria-labelledby="tab-education" [class.d-none]="activeTab() !== 'education'">
+      <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h2 class="sec"><i class="bi bi-mortarboard" aria-hidden="true"></i> Education</h2>
+        <button class="btn btn-outline-primary btn-sm" type="button" (click)="addEducation()"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add education</button>
+      </div>
+      <div class="card-body d-flex flex-column gap-3" formArrayName="education">
+        @for (e of education.controls; track e; let i = $index) {
+          <div class="item" [formGroupName]="i" role="group" [attr.aria-label]="'Education ' + (i + 1)">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h3 class="item-title">Education {{ i + 1 }}</h3>
+              <button class="btn btn-outline-danger btn-icon" type="button" (click)="remove(education, i)" [attr.aria-label]="'Remove education ' + (i + 1)">
+                <i class="bi bi-trash3" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div class="row g-3 align-items-start">
+              <div class="col-12 col-md-6">
+                <div class="form-floating">
+                  <input class="form-control" [id]="'ed-q-' + i" formControlName="qualification" placeholder=" " />
+                  <label [for]="'ed-q-' + i">Qualification (e.g. B.Com, Diploma)</label>
+                </div>
+                <app-field-error [control]="e.controls.qualification" label="Qualification" />
+              </div>
+              <div class="col-12 col-md-6">
+                <div class="form-floating">
+                  <input class="form-control" [id]="'ed-sp-' + i" formControlName="specialization" placeholder=" " />
+                  <label [for]="'ed-sp-' + i">Specialization</label>
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="form-floating">
+                  <input class="form-control" [id]="'ed-i-' + i" formControlName="institution" placeholder=" " />
+                  <label [for]="'ed-i-' + i">Institution</label>
+                </div>
+                <app-field-error [control]="e.controls.institution" label="Institution" />
+              </div>
+              <div class="col-12 col-md-4">
+                <div class="form-floating">
+                  <input class="form-control" [id]="'ed-s-' + i" type="number" min="1950" [max]="maxYear" formControlName="startYear" placeholder=" " />
+                  <label [for]="'ed-s-' + i">Start year</label>
+                </div>
+                <app-field-error [control]="e.controls.startYear" label="Start year" />
+              </div>
+              <div class="col-12 col-md-4">
+                <div class="form-floating">
+                  <input class="form-control" [id]="'ed-e-' + i" type="number" min="1950" [max]="maxYear" formControlName="endYear" placeholder=" " />
+                  <label [for]="'ed-e-' + i">End year</label>
+                </div>
+                <app-field-error [control]="e.controls.endYear" label="End year" />
+              </div>
+              <div class="col-12 col-md-4">
+                <div class="form-floating">
+                  <input class="form-control" [id]="'ed-g-' + i" formControlName="grade" placeholder=" " />
+                  <label [for]="'ed-g-' + i">Grade / percentage</label>
+                </div>
+              </div>
+            </div>
+          </div>
+        } @empty {
+          <p class="text-secondary mb-0 empty"><i class="bi bi-mortarboard" aria-hidden="true"></i> No education added yet.</p>
+        }
+      </div>
+    </section>
+
+    <!-- Skills -->
+    <section class="card" role="tabpanel" id="panel-skills" aria-labelledby="tab-skills" [class.d-none]="activeTab() !== 'skills'">
+      <div class="card-body d-flex flex-column gap-4">
+        @for (group of [{ arr: technicalSkills, type: 'technical', title: 'Technical skills', icon: 'bi-cpu', hint: 'Tools, software, trades and technical know-how' },
+                        { arr: softSkills, type: 'non_technical', title: 'Non-technical skills', icon: 'bi-people', hint: 'Communication, leadership, languages and other soft skills' }]; track group.type) {
+          <div>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+              <h2 class="sec"><i [class]="'bi ' + group.icon" aria-hidden="true"></i> {{ group.title }}</h2>
+              <button class="btn btn-outline-primary btn-sm" type="button" (click)="addSkill(group.type === 'technical' ? 'technical' : 'non_technical')">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i> Add {{ group.type === 'technical' ? 'technical' : 'non-technical' }} skill
+              </button>
+            </div>
+            <p class="form-text mt-0">{{ group.hint }}</p>
+            <div class="d-flex flex-column gap-2" [formArrayName]="group.type === 'technical' ? 'technicalSkills' : 'softSkills'">
+              @for (s of group.arr.controls; track s; let i = $index) {
+                <div class="item" [formGroupName]="i" role="group" [attr.aria-label]="group.title + ' ' + (i + 1)">
+                  <div class="row g-3 align-items-start">
+                    <div class="col-12 col-md-7">
+                      <div class="form-floating">
+                        <input class="form-control" [id]="group.type + '-n-' + i" formControlName="name" maxlength="60" placeholder=" " />
+                        <label [for]="group.type + '-n-' + i">Skill</label>
+                      </div>
+                      <app-field-error [control]="s.controls.name" label="Skill" />
+                    </div>
+                    <div class="col-9 col-md-4">
+                      <div class="form-floating">
+                        <select class="form-select" [id]="group.type + '-l-' + i" formControlName="level">
+                          <option value="">Not specified</option>
+                          @for (l of skillLevels; track l) {
+                            <option [value]="l">{{ l | enumLabel }}</option>
+                          }
+                        </select>
+                        <label [for]="group.type + '-l-' + i">Level</label>
+                      </div>
+                    </div>
+                    <div class="col-3 col-md-1 d-flex justify-content-end align-items-center rm-col">
+                      <button class="btn btn-outline-danger btn-icon" type="button" (click)="remove(group.arr, i)" [attr.aria-label]="'Remove skill ' + (i + 1)">
+                        <i class="bi bi-trash3" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              } @empty {
+                <p class="text-secondary small mb-0">None added yet.</p>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- Experience -->
+    <section class="card" role="tabpanel" id="panel-experience" aria-labelledby="tab-experience" [class.d-none]="activeTab() !== 'experience'">
+      <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h2 class="sec"><i class="bi bi-briefcase" aria-hidden="true"></i> Work experience</h2>
+        <button class="btn btn-outline-primary btn-sm" type="button" (click)="addExperience()"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add experience</button>
+      </div>
+      <div class="card-body d-flex flex-column gap-3">
+        @if (form.controls.careerLevel.value === 'fresher') {
+          <div class="alert alert-info d-flex gap-2 mb-0" role="note">
+            <i class="bi bi-mortarboard-fill" aria-hidden="true"></i>
+            <span>You're registered as a <strong>fresher</strong>. Experience is optional — add internships or projects if you have them.</span>
+          </div>
+        } @else {
+          <div class="row g-3 align-items-start">
+            <div class="col-12 col-md-6">
+              <div class="form-floating">
+                <input class="form-control" id="pf-exp" type="number" min="0" max="60" formControlName="totalExperienceYears" placeholder=" " />
+                <label for="pf-exp">Total experience (years)</label>
+              </div>
+              <app-field-error [control]="form.controls.totalExperienceYears" label="Experience" />
+            </div>
+          </div>
+        }
+        <div class="d-flex flex-column gap-3" formArrayName="experience">
+          @for (x of experience.controls; track x; let i = $index) {
+            <div class="item" [formGroupName]="i" role="group" [attr.aria-label]="'Experience ' + (i + 1)">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="item-title">Experience {{ i + 1 }}</h3>
+                <button class="btn btn-outline-danger btn-icon" type="button" (click)="remove(experience, i)" [attr.aria-label]="'Remove experience ' + (i + 1)">
+                  <i class="bi bi-trash3" aria-hidden="true"></i>
+                </button>
+              </div>
+              <div class="row g-3 align-items-start">
+                <div class="col-12 col-md-6">
+                  <div class="form-floating">
+                    <input class="form-control" [id]="'ex-t-' + i" formControlName="title" placeholder=" " />
+                    <label [for]="'ex-t-' + i">Job title</label>
+                  </div>
+                  <app-field-error [control]="x.controls.title" label="Job title" />
+                </div>
+                <div class="col-12 col-md-6">
+                  <div class="form-floating">
+                    <input class="form-control" [id]="'ex-c-' + i" formControlName="company" placeholder=" " />
+                    <label [for]="'ex-c-' + i">Company</label>
+                  </div>
+                  <app-field-error [control]="x.controls.company" label="Company" />
+                </div>
+                <div class="col-12 col-md-6">
+                  <div class="form-floating">
+                    <input class="form-control" [id]="'ex-l-' + i" formControlName="location" placeholder=" " />
+                    <label [for]="'ex-l-' + i">Location</label>
+                  </div>
+                </div>
+                <div class="col-12 col-md-6 d-flex align-items-center current">
+                  <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" role="switch" [id]="'ex-cur-' + i" formControlName="current" />
+                    <label class="form-check-label" [for]="'ex-cur-' + i">I currently work here</label>
+                  </div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <div class="form-floating">
+                    <input class="form-control" [id]="'ex-sd-' + i" type="date" formControlName="startDate" placeholder=" " />
+                    <label [for]="'ex-sd-' + i">Start date</label>
+                  </div>
+                  <app-field-error [control]="x.controls.startDate" label="Start date" />
+                </div>
+                <div class="col-12 col-md-6">
+                  <div class="form-floating">
+                    <input class="form-control" [id]="'ex-ed-' + i" type="date" formControlName="endDate" placeholder=" " />
+                    <label [for]="'ex-ed-' + i">End date</label>
+                  </div>
+                  @if (x.controls.current.value) {
+                    <div class="form-text">Not needed for your current role</div>
+                  }
+                </div>
+                <div class="col-12">
+                  <div class="form-floating">
+                    <textarea class="form-control desc" [id]="'ex-d-' + i" formControlName="description" maxlength="2000" placeholder=" "></textarea>
+                    <label [for]="'ex-d-' + i">Description</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          } @empty {
+            <p class="text-secondary mb-0 empty"><i class="bi bi-briefcase" aria-hidden="true"></i> No experience added yet.</p>
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- Preferences -->
+    <section class="card" role="tabpanel" id="panel-preferences" aria-labelledby="tab-preferences" [class.d-none]="activeTab() !== 'preferences'">
+      <div class="card-body">
+        <div class="row g-3 align-items-start">
+          <div class="col-12 col-md-6">
+            <div class="form-floating">
+              <input class="form-control" id="pf-roles" formControlName="preferredRoles" placeholder=" " />
+              <label for="pf-roles">Preferred roles</label>
+            </div>
+            <div class="form-text">Separate with commas, e.g. Accountant, Accounts Executive</div>
+            @if (chips(form.controls.preferredRoles.value).length) {
+              <ul class="list-unstyled d-flex flex-wrap gap-2 mt-2 mb-0" aria-label="Preferred roles preview">
+                @for (r of chips(form.controls.preferredRoles.value); track $index) {
+                  <li class="badge rounded-pill chip"><i class="bi bi-person-workspace" aria-hidden="true"></i> {{ r }}</li>
+                }
+              </ul>
+            }
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-floating">
+              <input class="form-control" id="pf-locs" formControlName="preferredLocations" placeholder=" " />
+              <label for="pf-locs">Preferred locations</label>
+            </div>
+            <div class="form-text">Separate with commas, e.g. Bengaluru, Pune, Remote</div>
+            @if (chips(form.controls.preferredLocations.value).length) {
+              <ul class="list-unstyled d-flex flex-wrap gap-2 mt-2 mb-0" aria-label="Preferred locations preview">
+                @for (loc of chips(form.controls.preferredLocations.value); track $index) {
+                  <li class="badge rounded-pill chip"><i class="bi bi-geo-alt" aria-hidden="true"></i> {{ loc }}</li>
+                }
+              </ul>
+            }
+          </div>
+          @if (form.controls.careerLevel.value === 'experienced') {
+            <div class="col-12 col-md-4">
+              <div class="form-floating">
+                <input class="form-control" id="pf-cur-sal" type="number" min="0" formControlName="currentSalary" placeholder=" " />
+                <label for="pf-cur-sal">Current salary (₹ per year)</label>
+              </div>
+              <app-field-error [control]="form.controls.currentSalary" label="Current salary" />
+            </div>
+          }
+          <div class="col-12 col-md-4">
+            <div class="form-floating">
+              <input class="form-control" id="pf-notice" type="number" min="0" max="365" formControlName="noticePeriodDays" placeholder=" " />
+              <label for="pf-notice">Notice period (days)</label>
+            </div>
+            <app-field-error [control]="form.controls.noticePeriodDays" label="Notice period" />
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="form-floating">
+              <select class="form-select" id="pf-avail" formControlName="availability">
+                <option value="">Not specified</option>
+                @for (a of availabilities; track a) {
+                  <option [value]="a">{{ a | enumLabel }}</option>
+                }
+              </select>
+              <label for="pf-avail">Availability</label>
+            </div>
+          </div>
+        </div>
+
+        <fieldset class="mt-4" formGroupName="expectedSalary">
+          <legend class="legend">Expected salary (INR)</legend>
+          <div class="row g-3 align-items-start">
+            <div class="col-12 col-md-4">
+              <div class="form-floating">
+                <input class="form-control" id="pf-exp-min" type="number" min="0" formControlName="min" placeholder=" " />
+                <label for="pf-exp-min">Minimum</label>
+              </div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="form-floating">
+                <input class="form-control" id="pf-exp-max" type="number" min="0" formControlName="max" placeholder=" " />
+                <label for="pf-exp-max">Maximum</label>
+              </div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="form-floating">
+                <select class="form-select" id="pf-period" formControlName="period">
+                  @for (p of periods; track p) {
+                    <option [value]="p">{{ p | enumLabel }}</option>
+                  }
+                </select>
+                <label for="pf-period">Period</label>
+              </div>
+            </div>
+          </div>
+          @if (form.controls.expectedSalary.hasError('minGreaterThanMax')) {
+            <div class="invalid-feedback d-block" role="alert">Minimum expected salary cannot be greater than the maximum.</div>
+          }
+        </fieldset>
+
+        <fieldset class="mt-4">
+          <legend class="legend">Preferred work modes</legend>
+          <div class="check-grid">
+            @for (m of workModes; track m) {
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" [id]="'pf-wm-' + m" [checked]="form.controls.preferredWorkModes.value.includes(m)"
+                  (change)="onToggle(form.controls.preferredWorkModes, m, $event)" />
+                <label class="form-check-label" [for]="'pf-wm-' + m">{{ m | enumLabel }}</label>
+              </div>
+            }
+          </div>
+        </fieldset>
+
+        <fieldset class="mt-4">
+          <legend class="legend">Employment types</legend>
+          <div class="check-grid">
+            @for (t of employmentTypes; track t) {
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" [id]="'pf-et-' + t" [checked]="form.controls.employmentTypes.value.includes(t)"
+                  (change)="onToggle(form.controls.employmentTypes, t, $event)" />
+                <label class="form-check-label" [for]="'pf-et-' + t">{{ t | enumLabel }}</label>
+              </div>
+            }
+          </div>
+        </fieldset>
+
+        <fieldset class="mt-4">
+          <legend class="legend">Preferred industries</legend>
+          <div class="check-grid">
+            @for (i of industries(); track i.id) {
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" [id]="'pf-ind-' + i.id" [checked]="form.controls.preferredIndustries.value.includes(i.id)"
+                  (change)="onToggle(form.controls.preferredIndustries, i.id, $event)" />
+                <label class="form-check-label" [for]="'pf-ind-' + i.id">{{ i.name }}</label>
+              </div>
+            } @empty {
+              <p class="text-secondary small mb-0">Industries are unavailable right now.</p>
+            }
+          </div>
+        </fieldset>
+
+        <div class="form-check form-switch mt-4">
+          <input class="form-check-input" type="checkbox" role="switch" id="pf-open" formControlName="openToWork" />
+          <label class="form-check-label" for="pf-open">Open to work — let Veejee Services recruiters know you're available</label>
+        </div>
+      </div>
+    </section>
+
+    @if (formError()) {
+      <div class="alert alert-danger d-flex gap-2 mt-3 mb-0" role="alert">
+        <i class="bi bi-exclamation-octagon-fill" aria-hidden="true"></i>
+        <span>{{ formError() }}</span>
+      </div>
+    }
+
+    <div class="actions-bar mt-3">
+      <span class="text-secondary small me-auto d-none d-sm-inline">
+        @if (form.dirty) {
+          <i class="bi bi-dot text-warning" aria-hidden="true"></i> Unsaved changes
+        } @else {
+          <i class="bi bi-check2 text-success" aria-hidden="true"></i> All changes saved
+        }
+      </span>
+      <button class="btn btn-outline-secondary" type="button" (click)="load()" [disabled]="saving()">Discard changes</button>
+      <button class="btn btn-primary" type="submit" [disabled]="saving()" data-testid="save-profile">
+        @if (saving()) {
+          <span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Saving…
+        } @else {
+          <i class="bi bi-check2-circle" aria-hidden="true"></i> Save profile
+        }
+      </button>
+    </div>
+  </form>
+}

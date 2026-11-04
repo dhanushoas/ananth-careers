@@ -1,0 +1,31 @@
+# Dependencies & builds
+node_modules/
+dist/
+coverage/
+.angular/
+out-tsc/
+
+# Secrets – never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Runtime data
+backend/storage/
+backend/tests/.mongo-uri
+
+# Test artefacts
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.log
+backend/.mongo-data/

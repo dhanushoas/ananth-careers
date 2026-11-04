@@ -1,0 +1,157 @@
+@if (dashboard.isLoading()) {
+  <app-skeleton variant="stat" [count]="4" />
+  <div class="mt-4"><app-skeleton variant="card" [count]="2" /></div>
+} @else if (dashboard.error()) {
+  <app-empty-state tone="error" illustration="error" title="We couldn't load your dashboard" message="Please try again in a moment.">
+    <button class="btn btn-primary" type="button" (click)="dashboard.reload()"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Retry</button>
+  </app-empty-state>
+} @else if (dashboard.value(); as d) {
+  <section class="welcome hero-navy mb-4" aria-labelledby="welcome-h">
+    <div class="w-text">
+      <span class="eyebrow">Candidate dashboard</span>
+      <h1 id="welcome-h" class="h2 mb-2">Welcome back, {{ firstName() }}</h1>
+      <p class="mb-3">Current stage: <strong class="stage-pill">{{ stageLabel() }}</strong></p>
+      <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-gold" routerLink="/candidate/jobs"><i class="bi bi-search" aria-hidden="true"></i> Browse jobs</a>
+        <a class="btn btn-outline-light" routerLink="/candidate/profile"><i class="bi bi-pencil-square" aria-hidden="true"></i> Edit profile</a>
+      </div>
+    </div>
+    <app-illustration name="dashboard-seeker" class="w-art d-none d-md-block" />
+  </section>
+
+  <section class="card mb-4" aria-labelledby="journey-h" appReveal>
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h2 id="journey-h" class="h5 m-0"><i class="bi bi-signpost-split text-gold" aria-hidden="true"></i> Your recruitment journey</h2>
+        <span class="small text-secondary">Updated by Veejee Services as your profile progresses</span>
+      </div>
+      <app-stage-tracker [stage]="d.stage" [history]="profile.value()?.stageHistory ?? []" />
+    </div>
+  </section>
+
+  <section class="stat-grid mb-4" aria-label="Summary">
+    <a class="card stat" routerLink="/candidate/applications">
+      <i class="bi bi-inbox" aria-hidden="true"></i>
+      <span class="label">Applications</span>
+      <span class="value"><app-count-up [value]="d.applications.total" /></span>
+    </a>
+    <a class="card stat" routerLink="/candidate/applications" [queryParams]="{ tab: 'shared' }">
+      <i class="bi bi-buildings" aria-hidden="true"></i>
+      <span class="label">Shared with companies</span>
+      <span class="value"><app-count-up [value]="d.submissions.total" /></span>
+    </a>
+    <a class="card stat" routerLink="/candidate/saved-jobs">
+      <i class="bi bi-bookmark-star" aria-hidden="true"></i>
+      <span class="label">Saved jobs</span>
+      <span class="value"><app-count-up [value]="d.savedJobs" /></span>
+    </a>
+    <a class="card stat" routerLink="/candidate/interviews">
+      <i class="bi bi-calendar2-event" aria-hidden="true"></i>
+      <span class="label">Upcoming interviews</span>
+      <span class="value"><app-count-up [value]="d.upcomingInterviews.length" /></span>
+    </a>
+  </section>
+
+  <div class="main-grid">
+    <div class="d-flex flex-column gap-4 min-w-0">
+      @if (nextStep(); as n) {
+        <div class="card next" appReveal>
+          <div class="card-body d-flex flex-wrap align-items-center gap-3">
+            <span class="n-icon"><i [class]="'bi ' + n.icon" aria-hidden="true"></i></span>
+            <p class="mb-0 flex-grow-1">{{ n.text }}</p>
+            <a class="btn btn-primary" [routerLink]="n.link">{{ n.cta }}</a>
+          </div>
+        </div>
+      }
+
+      <section aria-labelledby="shared-h">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+          <h2 id="shared-h" class="h5 m-0">Shared with companies</h2>
+          <a class="btn btn-link" routerLink="/candidate/applications">View all</a>
+        </div>
+        @if (activeSubmissions().length) {
+          <ul class="list-group">
+            @for (s of activeSubmissions(); track s.id) {
+              <li class="list-group-item d-flex flex-wrap align-items-center gap-2">
+                <i class="bi bi-buildings text-gold" aria-hidden="true"></i>
+                <span class="flex-grow-1 min-w-0">
+                  <strong class="d-block text-truncate">{{ s.job.title }}</strong>
+                  <span class="small text-secondary">{{ s.employer?.companyName ?? 'Veejee Services client' }} · shared {{ s.submittedAt | timeAgo }}</span>
+                </span>
+                <app-status-chip [status]="s.status" />
+              </li>
+            }
+          </ul>
+        } @else {
+          <app-empty-state [compact]="true" illustration="empty-applications" title="Not shared with any company yet"
+            message="When a Veejee Services recruiter submits your profile to a client company (with your consent), it appears here." />
+        }
+      </section>
+
+      <section aria-labelledby="iv-h">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+          <h2 id="iv-h" class="h5 m-0">Upcoming interviews</h2>
+          <a class="btn btn-link" routerLink="/candidate/interviews">View all</a>
+        </div>
+        <div class="d-flex flex-column gap-3">
+          @for (iv of interviews(); track iv.id) {
+            <app-candidate-interview-card [interview]="iv" (updated)="onInterviewUpdated($event)" />
+          } @empty {
+            <app-empty-state [compact]="true" illustration="empty-interviews" title="No upcoming interviews"
+              message="Veejee Services schedules interviews with companies on your behalf." />
+          }
+        </div>
+      </section>
+    </div>
+
+    <aside class="d-flex flex-column gap-4">
+      <section class="card" aria-labelledby="pc-h">
+        <div class="card-body">
+          <h2 id="pc-h" class="h6"><i class="bi bi-speedometer2 text-gold" aria-hidden="true"></i> Profile completion</h2>
+          <p class="fs-4 fw-bold mb-2">{{ d.profileCompletion }}%</p>
+          <div class="progress mb-3" role="progressbar" aria-label="Profile completion" [attr.aria-valuenow]="d.profileCompletion" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar" [class.bg-success]="d.profileCompletion >= 100" [style.width.%]="d.profileCompletion"></div>
+          </div>
+          <ul class="list-unstyled small mb-3 checks">
+            <li><i [class]="d.profileCompletion >= 100 ? 'bi bi-check-circle-fill text-success' : 'bi bi-circle text-secondary'" aria-hidden="true"></i> Profile details</li>
+            <li><i [class]="d.hasResume ? 'bi bi-check-circle-fill text-success' : 'bi bi-circle text-secondary'" aria-hidden="true"></i> Resume uploaded</li>
+          </ul>
+          <a class="btn btn-outline-primary w-100" routerLink="/candidate/profile">Update profile</a>
+        </div>
+      </section>
+
+      <section class="card consent" aria-labelledby="consent-h">
+        <div class="card-body">
+          <h2 id="consent-h" class="h6"><i class="bi bi-shield-lock text-gold" aria-hidden="true"></i> Privacy &amp; consent</h2>
+          <app-consent-badges [consent]="d.consent" />
+          <p class="small text-secondary mt-3 mb-3">
+            @if (d.consent.profileSharing) {
+              Veejee Services may share your approved profile with client companies for suitable roles.
+              @if (!d.consent.contactSharing) {
+                Your contact details stay private — companies reach you through us.
+              }
+            } @else {
+              Your profile is not shared with any company. Turn on profile sharing to be submitted for roles.
+            }
+          </p>
+          <a class="btn btn-outline-primary w-100" routerLink="/candidate/settings">Manage consent</a>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <section class="mt-5" aria-labelledby="rec-h">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+      <h2 id="rec-h" class="h5 m-0">Recommended for you</h2>
+      <a class="btn btn-link" routerLink="/candidate/jobs">Browse all jobs</a>
+    </div>
+    <div class="jobs-grid">
+      @for (job of d.recommendedJobs; track job.id) {
+        <app-job-card [job]="job" [showSave]="true" [saved]="saved.isSaved(job)" [saving]="saved.isPending(job.id)" (saveToggle)="saved.toggle($event).subscribe()" />
+      } @empty {
+        <app-empty-state [compact]="true" illustration="empty-jobs" title="No recommendations yet"
+          message="Add skills and preferences to your profile to get better job recommendations." />
+      }
+    </div>
+  </section>
+}

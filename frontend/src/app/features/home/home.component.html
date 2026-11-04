@@ -1,0 +1,309 @@
+<section class="hero hero-navy" aria-labelledby="hero-title">
+  <div class="container hero-grid">
+    <div class="hero-copy fade-in">
+      <span class="eyebrow">Veejee Services · Recruitment consultancy</span>
+      <h1 id="hero-title">{{ heroTitle() }}</h1>
+      <p class="lead-text">{{ heroSubtitle() }}</p>
+      <div class="d-flex flex-wrap gap-2 mt-4">
+        <a class="btn btn-gold btn-lg" routerLink="/auth/register/candidate"><i class="bi bi-person-plus" aria-hidden="true"></i> Register as a candidate</a>
+        <a class="btn btn-outline-light btn-lg" routerLink="/auth/register/employer"><i class="bi bi-building-add" aria-hidden="true"></i> Hire through Veejee Services</a>
+      </div>
+    </div>
+    <app-illustration name="hero-home" class="hero-art" />
+  </div>
+
+  <div class="container search-wrap fade-in">
+    <form class="search card" [formGroup]="searchForm" (ngSubmit)="search()" role="search" aria-label="Search jobs">
+      <div class="card-body">
+        <div class="row g-2 align-items-stretch">
+          <div class="col-12 col-md-6 col-xl-4">
+            <div class="input-group h-100">
+              <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+              <div class="form-floating">
+                <input class="form-control" id="h-q" formControlName="q" placeholder=" " data-testid="home-keyword" />
+                <label for="h-q">Keyword</label>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-6 col-xl-2">
+            <div class="input-group h-100">
+              <span class="input-group-text"><i class="bi bi-geo-alt" aria-hidden="true"></i></span>
+              <div class="form-floating">
+                <input class="form-control" id="h-loc" formControlName="location" placeholder=" " />
+                <label for="h-loc">Location</label>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-6 col-xl-2">
+            <div class="form-floating h-100">
+              <select class="form-select h-100" id="h-ind" formControlName="industry">
+                <option value="">All industries</option>
+                @for (i of topIndustries(); track i.id) {
+                  <option [value]="i.slug">{{ i.name }}</option>
+                }
+              </select>
+              <label for="h-ind">Industry</label>
+            </div>
+          </div>
+          <div class="col-12 col-md-6 col-xl-2">
+            <div class="form-floating h-100">
+              <select class="form-select h-100" id="h-type" formControlName="employmentType">
+                <option value="">Any type</option>
+                @for (t of employmentTypes; track t) {
+                  <option [value]="t">{{ t | enumLabel }}</option>
+                }
+              </select>
+              <label for="h-type">Employment type</label>
+            </div>
+          </div>
+          <div class="col-12 col-xl-2 d-grid">
+            <button class="btn btn-gold btn-lg" type="submit" data-testid="home-search"><i class="bi bi-search" aria-hidden="true"></i> Search jobs</button>
+          </div>
+        </div>
+      </div>
+    </form>
+    <p class="popular">
+      <span>Popular:</span>
+      <a class="pill" [routerLink]="['/jobs']" [queryParams]="{ employmentType: 'internship' }">Internships</a>
+      <a class="pill" [routerLink]="['/jobs']" [queryParams]="{ workMode: 'remote' }">Remote</a>
+      <a class="pill" [routerLink]="['/jobs']" [queryParams]="{ experience: 0 }">Freshers</a>
+      <a class="pill" [routerLink]="['/jobs']" [queryParams]="{ sort: 'latest' }">Latest</a>
+    </p>
+  </div>
+
+  @if (statItems().length) {
+    <div class="container">
+      <ul class="stats" aria-label="Veejee Services in numbers">
+        @for (s of statItems(); track s.label; let i = $index) {
+          <li class="stat" appReveal [appRevealDelay]="i * 90">
+            <span class="s-icon"><i [class]="'bi ' + s.icon" aria-hidden="true"></i></span>
+            <span class="stat-value">
+              @if (toNum(s.value); as n) {
+                <app-count-up [value]="n" />
+              } @else {
+                {{ s.value }}
+              }
+            </span>
+            <span class="stat-label">{{ s.label }}</span>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+  <app-section-divider variant="wave" color="#f6f8fb" />
+</section>
+
+<section class="section" aria-labelledby="ind-title">
+  <div class="container">
+    <div class="section-head" appReveal>
+      <div>
+        <span class="eyebrow">Industries we serve</span>
+        <h2 id="ind-title">Opportunities across every sector</h2>
+      </div>
+      <a class="btn btn-outline-primary" routerLink="/industries">All industries <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+    </div>
+    @if (industries.isLoading()) {
+      <app-skeleton variant="card" [count]="6" />
+    } @else if (industries.error()) {
+      <app-empty-state tone="error" title="Industries are unavailable right now">
+        <button class="btn btn-outline-primary" type="button" (click)="industries.reload()">Retry</button>
+      </app-empty-state>
+    } @else {
+      <div class="ind-grid">
+        @for (i of topIndustries(); track i.id; let idx = $index) {
+          <app-industry-card [industry]="i" appReveal [appRevealDelay]="(idx % 6) * 60" />
+        }
+      </div>
+    }
+  </div>
+</section>
+
+<section class="section section-alt bg-dots" aria-labelledby="jobs-title">
+  <div class="container">
+    <div class="section-head" appReveal>
+      <div>
+        <span class="eyebrow">Job opportunities</span>
+        <h2 id="jobs-title">Latest openings at our client companies</h2>
+      </div>
+      <a class="btn btn-primary" routerLink="/jobs">View all jobs <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+    </div>
+    @if (featuredJobs.isLoading()) {
+      <app-skeleton variant="job-card" [count]="4" />
+    } @else if (featuredJobs.error()) {
+      <app-empty-state tone="error" title="Jobs could not be loaded">
+        <button class="btn btn-outline-primary" type="button" (click)="featuredJobs.reload()">Retry</button>
+      </app-empty-state>
+    } @else {
+      <div class="job-grid">
+        @for (j of jobs(); track j.id) {
+          <app-job-card [job]="j" />
+        } @empty {
+          <app-empty-state illustration="empty-jobs" title="New jobs are on their way" message="Check back soon or register to be the first to apply." />
+        }
+      </div>
+    }
+  </div>
+</section>
+
+@if ((employers.value() ?? []).length) {
+  <section class="section" aria-labelledby="emp-title">
+    <div class="container">
+      <div class="section-head" appReveal>
+        <div>
+          <span class="eyebrow">Hiring through us</span>
+          <h2 id="emp-title">Our client companies</h2>
+        </div>
+        <a class="btn btn-outline-primary" routerLink="/employers">All companies <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+      </div>
+      <div class="emp-grid">
+        @for (e of employers.value() ?? []; track e.id) {
+          <app-employer-card [employer]="e" appReveal />
+        }
+      </div>
+    </div>
+  </section>
+}
+
+<section class="section how bg-blobs" aria-labelledby="how-title">
+  <div class="container">
+    <div class="text-center mb-5" appReveal>
+      <span class="eyebrow">How it works</span>
+      <h2 id="how-title">How our recruitment process works</h2>
+      <a class="btn btn-outline-primary mt-2" routerLink="/process">See the full process <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+    </div>
+    <ol class="timeline">
+      @for (s of seekerSteps; track s.title; let i = $index) {
+        <li class="t-step" appReveal [appRevealDelay]="i * 120">
+          <div class="t-art">
+            <app-illustration [name]="stepArt[i]" />
+            <span class="t-num" aria-hidden="true">{{ i + 1 }}</span>
+          </div>
+          <h3 class="h6 mt-3 mb-1">{{ s.title }}</h3>
+          <p class="small text-secondary mb-0">{{ s.text }}</p>
+        </li>
+      }
+    </ol>
+    <div class="employer-steps card mt-5" appReveal>
+      <div class="card-body">
+        <h3 class="h5 mb-3"><i class="bi bi-buildings text-gold" aria-hidden="true"></i> For employers</h3>
+        <ol class="e-steps">
+          @for (s of employerSteps; track s.title; let i = $index) {
+            <li>
+              <span class="e-ic"><i [class]="'bi ' + s.icon" aria-hidden="true"></i></span>
+              <div>
+                <strong class="d-block">{{ s.title }}</strong>
+                <span class="small text-secondary">{{ s.text }}</span>
+              </div>
+            </li>
+          }
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-alt" aria-labelledby="why-title">
+  <div class="container why-grid">
+    <div class="why-art" appReveal>
+      <app-illustration name="trust-shield" />
+    </div>
+    <div>
+      <span class="eyebrow">Why Veejee Services</span>
+      <h2 id="why-title" class="mb-4">A recruitment partner you can trust</h2>
+      <p class="text-secondary mb-4">We sit between candidates and companies – screening, shortlisting and coordinating, with candidate consent at every step.</p>
+      <div class="reasons">
+        @for (r of reasons; track r.title; let i = $index) {
+          <div class="reason" appReveal [appRevealDelay]="i * 80">
+            <span class="r-icon"><i [class]="'bi ' + r.icon" aria-hidden="true"></i></span>
+            <div>
+              <h3 class="h6 mb-1">{{ r.title }}</h3>
+              <p class="small text-secondary mb-0">{{ r.text }}</p>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" aria-label="Get started">
+  <div class="container dual">
+    <div class="cta-card seeker" appReveal>
+      <app-illustration name="cta-seeker" class="cta-art" />
+      <div>
+        <h2 class="h4">Looking for your next role?</h2>
+        <p class="text-secondary">Register free with Veejee Services. Our recruiters match you with suitable roles and support you to placement.</p>
+        <a class="btn btn-primary" routerLink="/auth/register/candidate"><i class="bi bi-person-plus" aria-hidden="true"></i> Register as a candidate</a>
+      </div>
+    </div>
+    <div class="cta-card employer" appReveal [appRevealDelay]="120">
+      <app-illustration name="cta-employer" class="cta-art" />
+      <div>
+        <h2 class="h4">Hiring for your team?</h2>
+        <p class="text-secondary">Post your requirements – we screen, shortlist and submit consented candidates, and schedule interviews for you.</p>
+        <a class="btn btn-gold" routerLink="/auth/register/employer"><i class="bi bi-building-add" aria-hidden="true"></i> Hire through Veejee Services</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section pt-0" aria-label="Consent and privacy">
+  <div class="container">
+    <div class="consent-band" appReveal>
+      <span class="cb-icon"><i class="bi bi-shield-lock" aria-hidden="true"></i></span>
+      <div class="grow-1">
+        <h2 class="h5 mb-1">Your profile is shared only with your consent</h2>
+        <p class="mb-0 text-secondary">Companies never browse our candidate database. We share your profile only for suitable roles you agree to – and you can change your privacy choices at any time.</p>
+      </div>
+      <a class="btn btn-outline-primary" routerLink="/job-seekers">For job seekers <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+    </div>
+  </div>
+</section>
+
+@if ((testimonials.value() ?? []).length) {
+  <section class="section testimonials hero-navy" aria-labelledby="t-title">
+    <div class="container">
+      <div class="text-center mb-5" appReveal>
+        <span class="eyebrow">Success stories</span>
+        <h2 id="t-title">What our candidates and clients say</h2>
+      </div>
+      <ul class="t-grid">
+        @for (t of testimonials.value() ?? []; track t.id; let i = $index) {
+          <li class="t-card" appReveal [appRevealDelay]="i * 90">
+            <figure>
+              <i class="bi bi-quote q-mark" aria-hidden="true"></i>
+              <div class="rating" role="img" [attr.aria-label]="'Rated ' + t.rating + ' out of 5'">
+                @for (s of stars(t.rating); track s) {
+                  <i class="bi bi-star-fill" aria-hidden="true"></i>
+                }
+              </div>
+              <blockquote>{{ t.quote }}</blockquote>
+              <figcaption>
+                <span class="avatar" aria-hidden="true">{{ t.name.charAt(0) }}</span>
+                <span>
+                  <strong class="d-block">{{ t.name }}</strong>
+                  <span class="small">{{ t.role }}{{ t.company ? ', ' + t.company : '' }}</span>
+                </span>
+              </figcaption>
+            </figure>
+          </li>
+        }
+      </ul>
+    </div>
+  </section>
+}
+
+<section class="section" aria-labelledby="cta-title">
+  <div class="container">
+    <div class="cta hero-navy" appReveal>
+      <div>
+        <h2 id="cta-title">Talk to a Veejee Services consultant</h2>
+        <p class="mb-0">Bulk hiring, campus drives or career guidance — we're here to help.</p>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-gold btn-lg" routerLink="/contact"><i class="bi bi-chat-dots" aria-hidden="true"></i> Send an enquiry</a>
+        <a class="btn btn-outline-light btn-lg" routerLink="/jobs">Browse jobs</a>
+      </div>
+    </div>
+  </div>
+</section>

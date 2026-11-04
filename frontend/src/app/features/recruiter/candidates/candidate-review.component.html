@@ -1,0 +1,310 @@
+@if (detail.isLoading() && !detail.value()) {
+  <app-skeleton variant="card" [count]="3" />
+} @else if (detail.error()) {
+  <app-empty-state [tone]="notFound() ? 'neutral' : 'error'" [illustration]="notFound() ? 'not-found' : 'error'"
+    [title]="notFound() ? 'Candidate not found' : 'The candidate could not be loaded'">
+    <a class="btn btn-primary" routerLink="/recruiter/candidates">Back to candidate database</a>
+  </app-empty-state>
+} @else if (detail.value(); as d) {
+  @let cand = d.candidate;
+  <nav aria-label="Breadcrumb">
+    <ol class="breadcrumb small">
+      <li class="breadcrumb-item"><a routerLink="/recruiter/candidates">Candidate database</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{ name() }}</li>
+    </ol>
+  </nav>
+
+  <section class="card head-card">
+    <div class="cover" aria-hidden="true"></div>
+    <div class="card-body head">
+      <span class="avatar" aria-hidden="true">{{ initials(name()) }}</span>
+      <div class="who">
+        <h1 class="h3 mb-1">{{ name() }}</h1>
+        <p class="text-secondary mb-2">{{ cand.headline || 'No headline yet' }}</p>
+        <ul class="contact">
+          @if (user()?.email; as email) { <li><i class="bi bi-envelope" aria-hidden="true"></i><a [href]="'mailto:' + email">{{ email }}</a></li> }
+          @if (user()?.mobile; as mobile) { <li><i class="bi bi-telephone" aria-hidden="true"></i><a [href]="'tel:' + mobile">{{ mobile }}</a></li> }
+          <li><i class="bi bi-geo-alt" aria-hidden="true"></i>{{ loc(cand.location) }}</li>
+        </ul>
+        <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+          @if (cand.stage) { <app-stage-badge [stage]="cand.stage" [label]="cand.stageLabel" /> }
+          <span [class]="cand.consent?.profileSharing ? 'badge consent ok' : 'badge consent no'" data-testid="consent-profile">
+            <i [class]="cand.consent?.profileSharing ? 'bi bi-shield-check' : 'bi bi-shield-x'" aria-hidden="true"></i>
+            {{ cand.consent?.profileSharing ? 'Agreed to profile sharing with companies' : 'Has NOT agreed to profile sharing' }}
+          </span>
+          <span [class]="cand.consent?.contactSharing ? 'badge consent ok' : 'badge consent no'" data-testid="consent-contact">
+            <i [class]="cand.consent?.contactSharing ? 'bi bi-telephone-inbound' : 'bi bi-telephone-x'" aria-hidden="true"></i>
+            {{ cand.consent?.contactSharing ? 'Contact details may be shared' : 'Contact details not shareable' }}
+          </span>
+        </div>
+      </div>
+      <div class="actions">
+        <div class="assign">
+          <span class="small text-secondary d-block">Assigned recruiter</span>
+          <app-dropdown align="end" buttonClass="btn btn-light btn-sm assign-btn" ariaLabel="Change assigned recruiter">
+            <ng-container toggle>
+              <i class="bi bi-person-badge" aria-hidden="true"></i>
+              <span>{{ assignedName() || 'Unassigned' }}</span>
+              <i class="bi bi-chevron-down small" aria-hidden="true"></i>
+            </ng-container>
+            @if (assignedId() !== myId()) {
+              <button class="dropdown-item fw-semibold" type="button" (click)="assign(myId())" [disabled]="busy()"><i class="bi bi-hand-index" aria-hidden="true"></i>Assign to me</button>
+            }
+            <hr class="dropdown-divider" />
+            @for (r of recruiters(); track r.id) {
+              <button class="dropdown-item" type="button" (click)="assign(r.id)" [disabled]="busy() || r.id === assignedId()">
+                <i class="bi bi-person" aria-hidden="true"></i>{{ r.name }}@if (r.designation) {<span class="small text-secondary"> · {{ r.designation }}</span>}
+              </button>
+            }
+            @if (assignedId()) {
+              <hr class="dropdown-divider" />
+              <button class="dropdown-item text-danger" type="button" (click)="assign(null)" [disabled]="busy()"><i class="bi bi-person-dash" aria-hidden="true"></i>Unassign</button>
+            }
+          </app-dropdown>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <button class="btn btn-gold" type="button" (click)="openShortlist()"><i class="bi bi-star" aria-hidden="true"></i> Shortlist for requirement</button>
+          <button class="btn btn-outline-primary" type="button" (click)="openStage()"><i class="bi bi-signpost-split" aria-hidden="true"></i> Update stage</button>
+          <button class="btn btn-outline-primary" type="button" (click)="openContact()"><i class="bi bi-envelope" aria-hidden="true"></i> Contact</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="layout">
+    <div class="main">
+      <section class="card">
+        <div class="card-body">
+          <h2 class="sec"><i class="bi bi-person-lines-fill" aria-hidden="true"></i> Summary</h2>
+          <p class="prose mb-3">{{ cand.summary || 'The candidate has not added a summary yet.' }}</p>
+          <div class="kv">
+            <div><span>Career level</span><strong>{{ (cand.careerLevel | enumLabel) || '—' }}</strong></div>
+            <div><span>Total experience</span><strong>{{ cand.totalExperienceYears ?? 0 }} years</strong></div>
+            <div><span>Profile completion</span><strong>{{ cand.profileCompletion ?? 0 }}%</strong></div>
+            <div><span>Open to work</span><strong>{{ cand.openToWork === false ? 'No' : 'Yes' }}</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-body">
+          <h2 class="sec"><i class="bi bi-stars" aria-hidden="true"></i> Skills</h2>
+          <h3 class="sub">Technical</h3>
+          <div class="skills mb-3">
+            @for (s of techSkills(); track s.name) {
+              <span class="badge tech">{{ s.name }}@if (s.level) {<small> · {{ s.level | enumLabel }}</small>}</span>
+            } @empty { <span class="text-secondary small">None listed</span> }
+          </div>
+          <h3 class="sub">Non-technical</h3>
+          <div class="skills">
+            @for (s of softSkills(); track s.name) {
+              <span class="badge soft">{{ s.name }}@if (s.level) {<small> · {{ s.level | enumLabel }}</small>}</span>
+            } @empty { <span class="text-secondary small">None listed</span> }
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-body">
+          <h2 class="sec"><i class="bi bi-briefcase" aria-hidden="true"></i> Experience</h2>
+          <ol class="timeline">
+            @for (e of cand.experience; track $index) {
+              <li>
+                <strong>{{ e.title }}</strong> · {{ e.company }}@if (e.location) {<span class="text-secondary"> · {{ e.location }}</span>}
+                <span class="d-block small text-secondary">{{ e.startDate | date: 'MMM y' }} – {{ e.current ? 'Present' : (e.endDate | date: 'MMM y') }}</span>
+                @if (e.description) { <p class="small mb-0 mt-1 prose">{{ e.description }}</p> }
+              </li>
+            } @empty {
+              <li class="text-secondary">{{ cand.careerLevel === 'fresher' ? 'Fresher – no work experience yet.' : 'No experience added.' }}</li>
+            }
+          </ol>
+          <h2 class="sec mt-4"><i class="bi bi-mortarboard" aria-hidden="true"></i> Education</h2>
+          <ol class="timeline">
+            @for (e of cand.education; track $index) {
+              <li>
+                <strong>{{ e.qualification }}</strong>@if (e.specialization) { – {{ e.specialization }} }
+                <span class="d-block small text-secondary">{{ e.institution }}@if (e.startYear || e.endYear) { · {{ e.startYear }}–{{ e.endYear }} }@if (e.grade) { · {{ e.grade }} }</span>
+              </li>
+            } @empty {
+              <li class="text-secondary">No education added.</li>
+            }
+          </ol>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-body">
+          <ul class="nav nav-tabs nav-scroll mb-3" role="tablist" aria-label="Candidate activity">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" type="button" role="tab" [class.active]="tab() === 'applications'" [attr.aria-selected]="tab() === 'applications'" (click)="tab.set('applications')">
+                Applications <span class="badge text-bg-light">{{ d.applications.length }}</span></button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" type="button" role="tab" [class.active]="tab() === 'shortlists'" [attr.aria-selected]="tab() === 'shortlists'" (click)="tab.set('shortlists')">
+                Shortlists <span class="badge text-bg-light">{{ d.shortlists.length }}</span></button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" type="button" role="tab" [class.active]="tab() === 'submissions'" [attr.aria-selected]="tab() === 'submissions'" (click)="tab.set('submissions')">
+                Submissions <span class="badge text-bg-light">{{ d.submissions.length }}</span></button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" type="button" role="tab" [class.active]="tab() === 'interviews'" [attr.aria-selected]="tab() === 'interviews'" (click)="tab.set('interviews')">
+                Interviews <span class="badge text-bg-light">{{ d.interviews.length }}</span></button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" type="button" role="tab" [class.active]="tab() === 'consent'" [attr.aria-selected]="tab() === 'consent'" (click)="tab.set('consent')">
+                Consent history</button>
+            </li>
+          </ul>
+          <div role="tabpanel">
+            @switch (tab()) {
+              @case ('applications') {
+                <ul class="list-group list-group-flush">
+                  @for (a of d.applications; track a.id) {
+                    <li class="list-group-item px-0 d-flex flex-wrap gap-2 align-items-center">
+                      <div class="flex-grow-1 min-w-0">
+                        <strong>{{ a.job.title }}</strong>
+                        <span class="d-block small text-secondary">{{ a.job.companyName || 'Client company' }} · applied {{ a.createdAt | timeAgo }}</span>
+                      </div>
+                      <app-status-chip [status]="a.status" />
+                    </li>
+                  } @empty { <li class="list-group-item px-0 text-secondary">No applications through Veejee Services.</li> }
+                </ul>
+              }
+              @case ('shortlists') {
+                <ul class="list-group list-group-flush">
+                  @for (s of d.shortlists; track s.id) {
+                    <li class="list-group-item px-0 d-flex flex-wrap gap-2 align-items-center">
+                      <div class="flex-grow-1 min-w-0">
+                        <a class="fw-semibold" [routerLink]="['/recruiter/requirements', s.job.id]">{{ s.job.title }}</a>
+                        <span class="d-block small text-secondary">
+                          {{ s.job.companyName || 'Client company' }} · by {{ personName(s.shortlistedBy ?? null, 'Veejee Services') }} · {{ s.createdAt | timeAgo }}
+                          @if (s.match) { · {{ s.match.score }}% match }
+                        </span>
+                      </div>
+                      <app-status-chip [status]="s.status" />
+                    </li>
+                  } @empty { <li class="list-group-item px-0 text-secondary">Not shortlisted for any requirement yet.</li> }
+                </ul>
+              }
+              @case ('submissions') {
+                <ul class="list-group list-group-flush">
+                  @for (s of d.submissions; track s.id) {
+                    <li class="list-group-item px-0 d-flex flex-wrap gap-2 align-items-center">
+                      <div class="flex-grow-1 min-w-0">
+                        <a class="fw-semibold" [routerLink]="['/recruiter/submissions', s.id]">{{ s.job.title }}</a>
+                        <span class="d-block small text-secondary">{{ companyOf(s.employer) }} · {{ s.contactShared ? 'contact shared' : 'contact not shared' }} · {{ s.createdAt | timeAgo }}</span>
+                      </div>
+                      <app-status-chip [status]="s.status" />
+                    </li>
+                  } @empty { <li class="list-group-item px-0 text-secondary">Not submitted to any company yet.</li> }
+                </ul>
+              }
+              @case ('interviews') {
+                <ul class="list-group list-group-flush">
+                  @for (iv of d.interviews; track iv.id) {
+                    <li class="list-group-item px-0 d-flex flex-wrap gap-2 align-items-center">
+                      <div class="flex-grow-1 min-w-0">
+                        <strong>{{ iv.job?.title || 'Interview' }}</strong>
+                        <span class="d-block small text-secondary">{{ iv.scheduledAt | date: 'medium' }} · {{ iv.mode | enumLabel }} · {{ iv.durationMinutes }} min</span>
+                      </div>
+                      <app-status-chip [status]="iv.status" />
+                      <app-status-chip [status]="iv.candidateResponse" />
+                    </li>
+                  } @empty { <li class="list-group-item px-0 text-secondary">No interviews yet.</li> }
+                </ul>
+              }
+              @case ('consent') {
+                <ul class="list-group list-group-flush">
+                  @for (h of d.consentHistory; track $index) {
+                    <li class="list-group-item px-0 d-flex flex-wrap gap-2 align-items-center">
+                      <i [class]="h.granted ? 'bi bi-check-circle-fill text-success' : 'bi bi-x-circle-fill text-danger'" aria-hidden="true"></i>
+                      <span class="flex-grow-1">{{ h.type | enumLabel }} {{ h.granted ? 'granted' : 'withdrawn' }}@if (h.version) { <span class="small text-secondary">(policy {{ h.version }})</span> }</span>
+                      <span class="small text-secondary">{{ h.createdAt | date: 'medium' }}</span>
+                    </li>
+                  } @empty { <li class="list-group-item px-0 text-secondary">No consent records.</li> }
+                </ul>
+              }
+            }
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="aside">
+      <section class="card">
+        <div class="card-body">
+          <h2 class="sec"><i class="bi bi-sliders" aria-hidden="true"></i> Preferences</h2>
+          <dl class="prefs">
+            <div><dt>Preferred roles</dt><dd>{{ cand.preferredRoles?.join(', ') || '—' }}</dd></div>
+            <div><dt>Preferred locations</dt><dd>{{ cand.preferredLocations?.join(', ') || '—' }}</dd></div>
+            <div><dt>Work modes</dt><dd>{{ listLabels(cand.preferredWorkModes) }}</dd></div>
+            <div><dt>Employment types</dt><dd>{{ listLabels(cand.employmentTypes) }}</dd></div>
+            <div><dt>Industries</dt><dd>{{ industryNames().join(', ') || '—' }}</dd></div>
+            <div><dt>Current salary</dt><dd>{{ inr(cand.currentSalary) }}</dd></div>
+            <div><dt>Expected salary</dt><dd>{{ expected(cand) }}</dd></div>
+            <div><dt>Notice period</dt><dd>{{ notice(cand.noticePeriodDays) }}</dd></div>
+            <div><dt>Availability</dt><dd>{{ (cand.availability | enumLabel) || '—' }}</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-body">
+          <h2 class="sec"><i class="bi bi-file-earmark-person" aria-hidden="true"></i> Resumes</h2>
+          <ul class="list-unstyled m-0 d-grid gap-2">
+            @for (r of d.resumes; track r.id) {
+              <li class="resume">
+                <i class="bi bi-file-earmark-pdf text-danger fs-4" aria-hidden="true"></i>
+                <span class="min-w-0 flex-grow-1">
+                  <span class="d-block text-truncate fw-semibold">{{ r.originalName }}</span>
+                  <span class="small text-secondary">{{ r.size | fileSize }} · {{ r.createdAt | date: 'mediumDate' }}@if (r.isPrimary) { · <strong>Primary</strong> }</span>
+                </span>
+                <button class="btn btn-light btn-icon" type="button" (click)="download(r)" [attr.aria-label]="'Download ' + r.originalName">
+                  <i class="bi bi-download" aria-hidden="true"></i>
+                </button>
+              </li>
+            } @empty { <li class="text-secondary small">No resume uploaded.</li> }
+          </ul>
+        </div>
+      </section>
+
+      <section class="card notes">
+        <div class="card-body">
+          <h2 class="sec"><i class="bi bi-journal-lock" aria-hidden="true"></i> Internal notes</h2>
+          <p class="small internal"><i class="bi bi-eye-slash" aria-hidden="true"></i> Internal — never shown to candidates or companies.</p>
+          <form [formGroup]="noteForm" (ngSubmit)="addNote()" novalidate class="mb-3">
+            <div class="form-floating mb-2">
+              <textarea class="form-control" id="note-body" formControlName="body" placeholder=" " maxlength="2000" style="height: 6rem"></textarea>
+              <label for="note-body">Add a note</label>
+            </div>
+            <app-field-error [control]="noteForm.controls.body" label="Note" />
+            @if (requirementOptions().length) {
+              <div class="form-floating mb-2">
+                <select class="form-select" id="note-job" formControlName="jobId">
+                  <option value="">Not linked to a requirement</option>
+                  @for (o of requirementOptions(); track o.id) { <option [value]="o.id">{{ o.title }}</option> }
+                </select>
+                <label for="note-job">Related requirement</label>
+              </div>
+            }
+            <button class="btn btn-primary btn-sm" type="submit" [disabled]="busy()"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add note</button>
+          </form>
+          <ul class="list-unstyled m-0 d-grid gap-2">
+            @for (n of d.notes; track n.id) {
+              <li class="note">
+                <div class="d-flex justify-content-between gap-2">
+                  <span class="small text-secondary">{{ personName(n.author ?? null, 'Recruiter') }} · {{ n.createdAt | timeAgo }}@if (jobTitle(n.job) !== '—') { · {{ jobTitle(n.job) }} }</span>
+                  <button class="btn btn-link btn-sm p-0 text-danger" type="button" (click)="deleteNote(n.id)" [attr.aria-label]="'Delete note from ' + (n.createdAt | timeAgo)">
+                    <i class="bi bi-trash" aria-hidden="true"></i>
+                  </button>
+                </div>
+                <p class="mb-0 prose">{{ n.body }}</p>
+              </li>
+            } @empty { <li class="text-secondary small">No notes yet.</li> }
+          </ul>
+        </div>
+      </section>
+    </aside>
+  </div>
+}

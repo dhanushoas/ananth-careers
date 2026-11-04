@@ -1,0 +1,334 @@
+<app-page-header
+  eyebrow="Recruiter portal"
+  title="Candidate database"
+  subtitle="Search everyone registered with Veejee Services. Profiles are shared with client companies only after shortlisting and with the candidate’s consent."
+  illustration="team"
+/>
+
+<form class="card search-bar" (ngSubmit)="search()" role="search" aria-label="Search candidates" [formGroup]="form">
+  <div class="card-body">
+    <div class="row g-2 align-items-stretch">
+      <div class="col-12 col-md">
+        <div class="input-group h-100">
+          <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+          <div class="form-floating">
+            <input class="form-control" id="cs-q" formControlName="q" placeholder=" " data-testid="candidate-search-q" />
+            <label for="cs-q">Name, headline, skill or keyword</label>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-auto d-grid">
+        <button class="btn btn-primary" type="submit"><i class="bi bi-search" aria-hidden="true"></i> Search</button>
+      </div>
+      <div class="col-6 col-md-auto d-grid d-lg-none">
+        <button class="btn btn-outline-primary" type="button" (click)="filtersOpen.set(true)" aria-controls="cand-filters" [attr.aria-expanded]="filtersOpen()">
+          <i class="bi bi-sliders" aria-hidden="true"></i> Filters
+          @if (chips().length) {
+            <span class="badge text-bg-gold">{{ chips().length }}</span>
+          }
+        </button>
+      </div>
+      <div class="col-12 col-md-auto">
+        <div class="form-floating sort">
+          <select class="form-select" id="cs-sort" (change)="setSort($event)">
+            <option value="" [selected]="!query().sort">Default</option>
+            @for (s of sorts; track s.value) {
+              <option [value]="s.value" [selected]="query().sort === s.value">{{ s.label }}</option>
+            }
+          </select>
+          <label for="cs-sort">Sort by</label>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+@if (chips().length) {
+  <div class="chips" aria-label="Active filters">
+    @for (c of chips(); track c.key) {
+      <span class="badge chip">
+        {{ c.text }}
+        <button type="button" class="btn-close btn-close-sm" [attr.aria-label]="'Remove filter ' + c.text" (click)="removeChip(c.key)"></button>
+      </span>
+    }
+    <button type="button" class="btn btn-link btn-sm p-0" (click)="clearAll()">Clear all</button>
+  </div>
+}
+
+<div class="layout">
+  <app-offcanvas [(open)]="filtersOpen" responsive="lg" placement="start" label="Candidate filters" panelId="cand-filters" panelClass="filter-panel">
+    <span offcanvasTitle class="fw-bold">Filters</span>
+    <form [formGroup]="form" (ngSubmit)="apply()" class="filters" aria-label="Advanced candidate search">
+      <h2 class="h6 d-none d-lg-flex align-items-center gap-2"><i class="bi bi-funnel text-gold" aria-hidden="true"></i> Advanced search</h2>
+
+      <fieldset>
+        <legend>Role & skills</legend>
+        <div class="row g-2">
+          <div class="col-12"><div class="form-floating"><input class="form-control" id="f-role" formControlName="role" placeholder=" " /><label for="f-role">Preferred role</label></div></div>
+          <div class="col-12"><div class="form-floating"><input class="form-control" id="f-skills" formControlName="skills" placeholder=" " /><label for="f-skills">Skills (all must match)</label></div>
+            <div class="form-text">Comma separated, e.g. Angular, Node.js</div></div>
+          <div class="col-12"><div class="form-floating"><input class="form-control" id="f-tech" formControlName="technicalSkills" placeholder=" " /><label for="f-tech">Technical skills</label></div></div>
+          <div class="col-12"><div class="form-floating"><input class="form-control" id="f-soft" formControlName="softSkills" placeholder=" " /><label for="f-soft">Soft skills</label></div></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Education</legend>
+        <div class="row g-2">
+          <div class="col-12"><div class="form-floating"><input class="form-control" id="f-qual" formControlName="qualification" placeholder=" " /><label for="f-qual">Qualification</label></div></div>
+          <div class="col-12"><div class="form-floating"><input class="form-control" id="f-spec" formControlName="specialization" placeholder=" " /><label for="f-spec">Specialization</label></div></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Experience & level</legend>
+        <div class="row g-2">
+          <div class="col-12">
+            <div class="form-floating">
+              <select class="form-select" id="f-level" formControlName="careerLevel">
+                <option value="">Any</option>
+                @for (l of careerLevels; track l) { <option [value]="l">{{ l | enumLabel }}</option> }
+              </select>
+              <label for="f-level">Career level</label>
+            </div>
+          </div>
+          <div class="col-6"><div class="form-floating"><input class="form-control" id="f-expmin" type="number" min="0" formControlName="expMin" placeholder=" " /><label for="f-expmin">Min years</label></div></div>
+          <div class="col-6"><div class="form-floating"><input class="form-control" id="f-expmax" type="number" min="0" formControlName="expMax" placeholder=" " /><label for="f-expmax">Max years</label></div></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Salary (₹ per year)</legend>
+        <div class="row g-2">
+          <div class="col-12"><div class="form-floating"><input class="form-control" id="f-cur" type="number" min="0" step="10000" formControlName="currentSalaryMax" placeholder=" " /><label for="f-cur">Current salary up to</label></div></div>
+          <div class="col-12"><div class="form-floating"><input class="form-control" id="f-exp" type="number" min="0" step="10000" formControlName="expectedSalaryMax" placeholder=" " /><label for="f-exp">Expected salary up to</label></div></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Location & work</legend>
+        <div class="row g-2">
+          <div class="col-12"><div class="form-floating"><input class="form-control" id="f-loc" formControlName="location" placeholder=" " /><label for="f-loc">Location</label></div></div>
+          <div class="col-12">
+            <div class="form-floating">
+              <select class="form-select" id="f-wm" formControlName="workMode">
+                <option value="">Any</option>
+                @for (m of workModes; track m) { <option [value]="m">{{ m | enumLabel }}</option> }
+              </select>
+              <label for="f-wm">Work mode</label>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="form-floating">
+              <select class="form-select" id="f-et" formControlName="employmentType">
+                <option value="">Any</option>
+                @for (t of employmentTypes; track t) { <option [value]="t">{{ t | enumLabel }}</option> }
+              </select>
+              <label for="f-et">Employment type</label>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="form-floating">
+              <select class="form-select" id="f-ind" formControlName="industry">
+                <option value="">Any industry</option>
+                @for (i of industries(); track i.id) { <option [value]="i.id">{{ i.name }}</option> }
+              </select>
+              <label for="f-ind">Preferred industry</label>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Availability</legend>
+        <div class="row g-2">
+          <div class="col-12"><div class="form-floating"><input class="form-control" id="f-notice" type="number" min="0" formControlName="noticeMax" placeholder=" " /><label for="f-notice">Notice period up to (days)</label></div></div>
+          <div class="col-12 checks">
+            @for (a of availabilityOptions; track a) {
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" [id]="'av-' + a" [checked]="availability().includes(a)" (change)="toggleMulti('availability', a, $event)" />
+                <label class="form-check-label" [for]="'av-' + a">{{ a | enumLabel }}</label>
+              </div>
+            }
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Profile & consent</legend>
+        <div class="row g-2">
+          <div class="col-12"><div class="form-floating"><input class="form-control" id="f-comp" type="number" min="0" max="100" formControlName="completionMin" placeholder=" " /><label for="f-comp">Profile completion at least (%)</label></div></div>
+          <div class="col-12">
+            <div class="form-floating">
+              <select class="form-select" id="f-res" formControlName="hasResume">
+                <option value="">Any</option><option value="true">Has a resume</option><option value="false">No resume</option>
+              </select>
+              <label for="f-res">Resume</label>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="form-floating">
+              <select class="form-select" id="f-consent" formControlName="consent">
+                <option value="">Any</option><option value="true">Consented to profile sharing</option><option value="false">Not consented</option>
+              </select>
+              <label for="f-consent">Sharing consent</label>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="form-floating">
+              <select class="form-select" id="f-assigned" formControlName="assigned">
+                <option value="">Anyone</option>
+                <option value="me">Assigned to me</option>
+                <option value="unassigned">Unassigned</option>
+                @for (r of recruiters(); track r.id) { <option [value]="r.id">{{ r.name }}</option> }
+              </select>
+              <label for="f-assigned">Assigned recruiter</label>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Stage</legend>
+        <div class="checks">
+          @for (s of stageOptions; track s) {
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" [id]="'st-' + s" [checked]="stages().includes(s)" (change)="toggleMulti('stages', s, $event)" />
+              <label class="form-check-label" [for]="'st-' + s">{{ stageLabels[s] }}</label>
+            </div>
+          }
+        </div>
+      </fieldset>
+
+      <div class="apply-bar">
+        <button class="btn btn-primary w-100" type="submit"><i class="bi bi-funnel" aria-hidden="true"></i> Apply filters</button>
+        @if (chips().length) {
+          <button class="btn btn-link w-100 mt-1" type="button" (click)="clearAll()">Clear all</button>
+        }
+      </div>
+    </form>
+  </app-offcanvas>
+
+  <section class="results" aria-labelledby="cand-results">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+      <h2 id="cand-results" class="h6 m-0">
+        @if (results.value(); as r) {
+          <strong>{{ r.total }}</strong> {{ r.total === 1 ? 'candidate' : 'candidates' }}
+        } @else {
+          Candidates
+        }
+      </h2>
+      <div class="d-flex align-items-center gap-2">
+        <span class="small text-secondary">{{ selected().length }} selected (2–4 to compare)</span>
+        <button class="btn btn-sm btn-gold" type="button" [disabled]="selected().length < 2" (click)="compare()">
+          <i class="bi bi-layout-three-columns" aria-hidden="true"></i> Compare
+        </button>
+      </div>
+    </div>
+
+    @if (results.isLoading()) {
+      <app-skeleton variant="table" [count]="6" />
+    } @else if (results.error()) {
+      <app-empty-state tone="error" title="Candidates could not be loaded" message="Please try again.">
+        <button class="btn btn-primary" type="button" (click)="results.reload()">Retry</button>
+      </app-empty-state>
+    } @else if (results.value(); as r) {
+      @if (!r.items.length) {
+        <app-empty-state illustration="empty-search" title="No candidates match these filters" message="Try removing a filter or broadening the keyword.">
+          @if (chips().length) {
+            <button class="btn btn-outline-primary" type="button" (click)="clearAll()">Clear filters</button>
+          }
+        </app-empty-state>
+      } @else {
+        <div class="table-responsive d-none d-md-block">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th scope="col" class="sel"><span class="visually-hidden">Select</span></th>
+                <th scope="col">Candidate</th>
+                <th scope="col">Experience</th>
+                <th scope="col">Location</th>
+                <th scope="col">Notice</th>
+                <th scope="col">Stage</th>
+                <th scope="col">Consent</th>
+                <th scope="col">Profile</th>
+                <th scope="col">Recruiter</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of r.items; track c.id) {
+                <tr data-testid="candidate-row">
+                  <td class="sel">
+                    <input class="form-check-input" type="checkbox" [checked]="isSelected(c.id)" (change)="toggleSelect(c.id, $event)"
+                      [attr.aria-label]="'Select ' + name(c) + ' for comparison'" />
+                  </td>
+                  <td>
+                    <div class="who">
+                      <span class="avatar" aria-hidden="true">{{ initials(name(c)) }}</span>
+                      <span class="min-w-0">
+                        <a class="fw-semibold" [routerLink]="['/recruiter/candidates', c.id]">{{ name(c) }}</a>
+                        <span class="d-block small text-secondary text-truncate cell-sub">{{ c.headline || '—' }}</span>
+                        <span class="d-block small text-body-tertiary text-truncate cell-sub">{{ skillPreview(c.skills) }}</span>
+                      </span>
+                    </div>
+                  </td>
+                  <td class="text-nowrap">{{ c.careerLevel === 'fresher' ? 'Fresher' : (c.totalExperienceYears ?? 0) + ' yrs' }}</td>
+                  <td>{{ loc(c.location) }}</td>
+                  <td class="text-nowrap">{{ notice(c.noticePeriodDays) }}</td>
+                  <td>@if (c.stage) { <app-stage-badge [stage]="c.stage" [label]="c.stageLabel" /> }</td>
+                  <td class="text-nowrap">
+                    <i [class]="c.consent?.profileSharing ? 'bi bi-person-check-fill text-success' : 'bi bi-person-x text-secondary'"
+                      [attr.title]="c.consent?.profileSharing ? 'Profile sharing allowed' : 'No profile-sharing consent'"
+                      [attr.aria-label]="c.consent?.profileSharing ? 'Profile sharing allowed' : 'No profile-sharing consent'" role="img"></i>
+                    <i [class]="c.consent?.contactSharing ? 'bi bi-telephone-fill text-success ms-2' : 'bi bi-telephone-x text-secondary ms-2'"
+                      [attr.title]="c.consent?.contactSharing ? 'Contact sharing allowed' : 'No contact-sharing consent'"
+                      [attr.aria-label]="c.consent?.contactSharing ? 'Contact sharing allowed' : 'No contact-sharing consent'" role="img"></i>
+                  </td>
+                  <td class="comp">
+                    <span class="small">{{ c.profileCompletion ?? 0 }}%</span>
+                    <span class="progress" role="progressbar" [attr.aria-valuenow]="c.profileCompletion ?? 0" aria-valuemin="0" aria-valuemax="100" aria-label="Profile completion">
+                      <span class="progress-bar" [style.width.%]="c.profileCompletion ?? 0"></span>
+                    </span>
+                  </td>
+                  <td class="small">{{ recruiterName(c.assignedRecruiter, 'Unassigned') }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <ul class="cards d-md-none">
+          @for (c of r.items; track c.id) {
+            <li class="card" data-testid="candidate-card">
+              <div class="card-body">
+                <div class="who">
+                  <input class="form-check-input flex-shrink-0" type="checkbox" [checked]="isSelected(c.id)" (change)="toggleSelect(c.id, $event)"
+                    [attr.aria-label]="'Select ' + name(c) + ' for comparison'" />
+                  <span class="avatar" aria-hidden="true">{{ initials(name(c)) }}</span>
+                  <span class="min-w-0">
+                    <a class="fw-semibold" [routerLink]="['/recruiter/candidates', c.id]">{{ name(c) }}</a>
+                    <span class="d-block small text-secondary">{{ c.headline || '—' }}</span>
+                  </span>
+                </div>
+                <ul class="facts">
+                  <li><i class="bi bi-briefcase" aria-hidden="true"></i>{{ c.careerLevel === 'fresher' ? 'Fresher' : (c.totalExperienceYears ?? 0) + ' yrs' }}</li>
+                  <li><i class="bi bi-geo-alt" aria-hidden="true"></i>{{ loc(c.location) }}</li>
+                  <li><i class="bi bi-hourglass" aria-hidden="true"></i>{{ notice(c.noticePeriodDays) }}</li>
+                  <li><i class="bi bi-person-badge" aria-hidden="true"></i>{{ recruiterName(c.assignedRecruiter, 'Unassigned') }}</li>
+                </ul>
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                  @if (c.stage) { <app-stage-badge [stage]="c.stage" [label]="c.stageLabel" /> }
+                  <span class="badge" [class]="c.consent?.profileSharing ? 'badge text-bg-success' : 'badge text-bg-secondary'">
+                    {{ c.consent?.profileSharing ? 'Consent to share' : 'No sharing consent' }}
+                  </span>
+                  <span class="small text-secondary ms-auto">{{ c.profileCompletion ?? 0 }}% complete</span>
+                </div>
+              </div>
+            </li>
+          }
+        </ul>
+        <app-paginator [page]="r.page" [limit]="r.limit" [total]="r.total" [pageSizeOptions]="[20]" (pageChange)="onPage($event)" />
+      }
+    }
+  </section>
+</div>

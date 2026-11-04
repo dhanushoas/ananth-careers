@@ -1,0 +1,117 @@
+.completion {
+  border-top: 3px solid var(--an-gold-500);
+}
+.card-header {
+  background: linear-gradient(90deg, var(--an-navy-50), var(--an-surface));
+  border-bottom-color: var(--an-border);
+  padding-block: var(--an-space-3);
+}
+.sec {
+  display: flex;
+  align-items: center;
+  gap: var(--an-space-2);
+  font-size: 1.05rem;
+  margin: 0;
+  .bi {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--an-navy-900);
+    color: var(--an-gold-300);
+    font-size: 1rem;
+  }
+}
+.summary {
+  height: 8rem;
+}
+.desc {
+  height: 6.5rem;
+}
+.legend {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--an-text);
+  margin-bottom: var(--an-space-2);
+}
+.check-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  gap: var(--an-space-2) var(--an-space-4);
+  .form-check {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: var(--an-space-2);
+    padding: 0 var(--an-space-3);
+    margin: 0;
+    border: 1px solid var(--an-border);
+    border-radius: var(--an-radius-sm);
+    background: var(--an-surface);
+  }
+  .form-check-input {
+    margin: 0;
+    float: none;
+    flex: none;
+  }
+  .form-check:has(.form-check-input:checked) {
+    border-color: var(--an-navy-700);
+    background: var(--an-navy-50);
+  }
+}
+.chip {
+  background: var(--an-gold-100);
+  color: var(--an-gold-700);
+  border: 1px solid var(--an-gold-300);
+  font-weight: 500;
+}
+.item {
+  border: 1px solid var(--an-border);
+  border-left: 3px solid var(--an-gold-500);
+  border-radius: var(--an-radius);
+  padding: var(--an-space-3);
+  background: var(--an-surface-2);
+}
+.item-title {
+  font-size: 0.95rem;
+  margin: 0;
+}
+.rm-col {
+  min-height: 3.5rem;
+}
+.current {
+  min-height: 3.5rem;
+}
+.empty {
+  display: flex;
+  gap: var(--an-space-2);
+  align-items: center;
+}
+.actions-bar {
+  position: sticky;
+  bottom: var(--an-space-2);
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--an-space-2);
+  padding: var(--an-space-3) var(--an-space-4);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--an-border);
+  border-radius: var(--an-radius-lg);
+  box-shadow: var(--an-shadow-3);
+}
+.tabs {
+  gap: var(--an-space-1);
+  .nav-link {
+    border: 1px solid var(--an-border);
+    background: var(--an-surface);
+  }
+  .nav-link.active {
+    border-color: var(--an-navy-900);
+  }
+}

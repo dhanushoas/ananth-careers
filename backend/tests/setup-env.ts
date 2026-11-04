@@ -1,0 +1,10 @@
+process.env.NODE_ENV = 'test';
+process.env.JWT_ACCESS_SECRET = 'test-secret-test-secret-test-secret-123456';
+process.env.FILE_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64');
+process.env.STORAGE_LOCAL_DIR = require('node:path').join(require('node:os').tmpdir(), 'ananth-test-storage');
+process.env.CORS_ORIGINS = 'http://localhost:4200';
+process.env.RATE_LIMIT_MAX = '100000';
+process.env.AUTH_RATE_LIMIT_MAX = '100000';
+process.env.CONTACT_RATE_LIMIT_MAX = '100000';
+const uri = require('node:fs').readFileSync(require('node:path').join(__dirname, '.mongo-uri'), 'utf8').trim();
+process.env.MONGODB_URI = uri;

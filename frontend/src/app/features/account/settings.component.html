@@ -1,0 +1,249 @@
+<app-page-header title="Account settings" eyebrow="Settings" illustration="settings"
+  subtitle="Manage your personal details, security, privacy and data." />
+
+@if (auth.user(); as u) {
+  <div class="row g-4">
+    <!-- Sidebar summary -->
+    <aside class="col-12 col-xl-4">
+      <div class="card profile-card">
+        <div class="band" aria-hidden="true"></div>
+        <div class="card-body pt-0 text-center">
+          <div class="avatar-wrap">
+            <app-user-avatar [userId]="u.id" [hasAvatar]="u.hasAvatar" [name]="u.name" [size]="96" [version]="avatarVersion()" />
+          </div>
+          <h2 class="h5 mt-2 mb-0 name">{{ u.name }}</h2>
+          <p class="text-secondary small mb-2 email">{{ u.email }}</p>
+          <span class="badge rounded-pill text-bg-gold"><i class="bi bi-person-badge" aria-hidden="true"></i> {{ u.role | enumLabel }}</span>
+          <div class="mt-4 text-start">
+            <app-file-upload
+              label="Choose an image"
+              hint="JPEG, PNG or WebP"
+              accept="image/jpeg,image/png,image/webp"
+              icon="add_a_photo"
+              [mimeTypes]="['image/jpeg', 'image/png', 'image/webp']"
+              [maxBytes]="2 * 1024 * 1024"
+              [busy]="avatarBusy()"
+              (fileSelected)="uploadAvatar($event)"
+            />
+            @if (u.hasAvatar) {
+              <button class="btn btn-outline-danger btn-sm mt-2" type="button" (click)="removeAvatar()" [disabled]="avatarBusy()">
+                <i class="bi bi-x-circle" aria-hidden="true"></i> Remove photo
+              </button>
+            }
+          </div>
+          <app-illustration class="side-art d-none d-xl-block mt-4" name="settings" />
+        </div>
+      </div>
+    </aside>
+
+    <div class="col-12 col-xl-8 d-flex flex-column gap-4">
+      <!-- Personal details -->
+      <section class="card" aria-labelledby="s-details">
+        <div class="card-header"><h2 id="s-details" class="sec"><i class="bi bi-person-lines-fill" aria-hidden="true"></i> Personal details</h2></div>
+        <div class="card-body">
+          <form [formGroup]="details" (ngSubmit)="saveDetails()" novalidate>
+            <div class="row g-3 align-items-start">
+              <div class="col-12 col-md-6">
+                <div class="form-floating">
+                  <input class="form-control" id="st-name" formControlName="name" autocomplete="name" placeholder=" " />
+                  <label for="st-name">Full name</label>
+                </div>
+                <app-field-error [control]="details.controls.name" label="Name" />
+              </div>
+              <div class="col-12 col-md-6">
+                <div class="form-floating">
+                  <input class="form-control" id="st-mobile" formControlName="mobile" type="tel" autocomplete="tel" placeholder=" " />
+                  <label for="st-mobile">Mobile number</label>
+                </div>
+                <app-field-error [control]="details.controls.mobile" label="Mobile" />
+              </div>
+            </div>
+            <div class="d-flex justify-content-end mt-3">
+              <button class="btn btn-primary" type="submit" [disabled]="savingDetails() || details.pristine">
+                <i class="bi bi-check2" aria-hidden="true"></i> {{ savingDetails() ? 'Saving…' : 'Save details' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Privacy & consent (candidates) -->
+      @if (u.role === 'candidate') {
+        <section class="card consent-card" aria-labelledby="s-privacy" data-testid="privacy-consent">
+          <div class="card-header"><h2 id="s-privacy" class="sec"><i class="bi bi-shield-lock" aria-hidden="true"></i> Privacy &amp; consent</h2></div>
+          <div class="card-body">
+            <p class="text-secondary">
+              Veejee Services works on your behalf. Our recruiters review your profile, and we share it with a client company
+              <strong>only if you allow it</strong>. Companies never search our candidate database directly.
+            </p>
+            @if (consentLoading()) {
+              <p class="text-secondary small"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Loading your preferences…</p>
+            } @else {
+              <div class="consent-row">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" role="switch" id="st-share-profile"
+                    [checked]="profileSharing()" [disabled]="privacyBusy()" (change)="setProfileSharing($event)" aria-describedby="st-share-profile-help" />
+                  <label class="form-check-label fw-semibold" for="st-share-profile">Share my profile with client companies</label>
+                </div>
+                <p class="form-text mb-0" id="st-share-profile-help">
+                  When on, Veejee Services may submit your approved profile (skills, experience, education, expected salary and resume) to companies
+                  for roles that match you. Your date of birth and gender are never shared. When off, you won&apos;t be submitted for any role.
+                </p>
+              </div>
+              <div class="consent-row">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" role="switch" id="st-share-contact"
+                    [checked]="contactSharing()" [disabled]="privacyBusy() || !profileSharing()" (change)="setContactSharing($event)" aria-describedby="st-share-contact-help" />
+                  <label class="form-check-label fw-semibold" for="st-share-contact">Share my contact details with client companies</label>
+                </div>
+                <p class="form-text mb-0" id="st-share-contact-help">
+                  When on, companies you are submitted to can see your email and mobile number. When off, they contact you through Veejee Services.
+                  @if (!profileSharing()) { <span class="d-block">Requires profile sharing.</span> }
+                </p>
+              </div>
+              @if (consentHistory().length) {
+                <details class="history mt-3">
+                  <summary class="fw-semibold">Consent history ({{ consentHistory().length }})</summary>
+                  <ul class="list-unstyled small mt-2 mb-0">
+                    @for (h of consentHistory(); track $index) {
+                      <li class="d-flex flex-wrap gap-2 align-items-center py-1 border-bottom">
+                        <i [class]="h.granted ? 'bi bi-check-circle-fill text-success' : 'bi bi-x-circle-fill text-secondary'" aria-hidden="true"></i>
+                        <span>{{ consentLabel(h.type) }} — {{ h.granted ? 'granted' : 'withdrawn' }}</span>
+                        <span class="text-secondary ms-auto">{{ h.createdAt | date: 'medium' }}@if (h.version) { · v{{ h.version }} }</span>
+                      </li>
+                    }
+                  </ul>
+                </details>
+              }
+            }
+          </div>
+        </section>
+      }
+
+      <!-- Password -->
+      <section class="card" aria-labelledby="s-pass">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <h2 id="s-pass" class="sec"><i class="bi bi-key" aria-hidden="true"></i> Change password</h2>
+          <button class="btn btn-light btn-sm" type="button" (click)="showPasswords.set(!showPasswords())"
+            [attr.aria-pressed]="showPasswords()" [attr.aria-label]="showPasswords() ? 'Hide passwords' : 'Show passwords'">
+            <i class="bi" [class]="showPasswords() ? 'bi bi-eye-slash' : 'bi bi-eye'" aria-hidden="true"></i>
+            {{ showPasswords() ? 'Hide' : 'Show' }}
+          </button>
+        </div>
+        <div class="card-body">
+          @if (googleOnly()) {
+            <div class="alert alert-info d-flex gap-2 mb-0" role="status" data-testid="google-only-password">
+              <i class="bi bi-google" aria-hidden="true"></i>
+              <div>
+                <p class="mb-1"><strong>You sign in with Google.</strong> Your account doesn’t have a password yet.</p>
+                <p class="mb-0 small">To add one, use <a routerLink="/auth/forgot-password">Forgot password</a> — we’ll email you a link to set it.</p>
+              </div>
+            </div>
+          } @else {
+          <form [formGroup]="password" (ngSubmit)="changePassword()" novalidate>
+            <div class="row g-3 align-items-start">
+              <div class="col-12">
+                <div class="input-group">
+                  <div class="form-floating">
+                    <input class="form-control" id="st-cur" [type]="showPasswords() ? 'text' : 'password'" formControlName="currentPassword" autocomplete="current-password" placeholder=" " />
+                    <label for="st-cur">Current password</label>
+                  </div>
+                  <span class="input-group-text"><i class="bi bi-lock" aria-hidden="true"></i></span>
+                </div>
+                <app-field-error [control]="password.controls.currentPassword" label="Current password" />
+              </div>
+              <div class="col-12 col-md-6">
+                <div class="input-group">
+                  <div class="form-floating">
+                    <input class="form-control" id="st-new" [type]="showPasswords() ? 'text' : 'password'" formControlName="newPassword" autocomplete="new-password" placeholder=" " />
+                    <label for="st-new">New password</label>
+                  </div>
+                  <button class="btn btn-outline-secondary" type="button" (click)="showPasswords.set(!showPasswords())"
+                    [attr.aria-label]="showPasswords() ? 'Hide password' : 'Show password'">
+                    <i [class]="showPasswords() ? 'bi bi-eye-slash' : 'bi bi-eye'" aria-hidden="true"></i>
+                  </button>
+                </div>
+                <div class="form-text">8+ characters with a letter and a digit</div>
+                <app-field-error [control]="password.controls.newPassword" label="New password" />
+              </div>
+              <div class="col-12 col-md-6">
+                <div class="input-group">
+                  <div class="form-floating">
+                    <input class="form-control" id="st-confirm" [type]="showPasswords() ? 'text' : 'password'" formControlName="confirmPassword" autocomplete="new-password" placeholder=" " />
+                    <label for="st-confirm">Confirm new password</label>
+                  </div>
+                  <button class="btn btn-outline-secondary" type="button" (click)="showPasswords.set(!showPasswords())"
+                    [attr.aria-label]="showPasswords() ? 'Hide password' : 'Show password'">
+                    <i [class]="showPasswords() ? 'bi bi-eye-slash' : 'bi bi-eye'" aria-hidden="true"></i>
+                  </button>
+                </div>
+                <app-field-error [control]="password.controls.confirmPassword" label="Confirmation" />
+              </div>
+            </div>
+            <div class="d-flex justify-content-end mt-3">
+              <button class="btn btn-primary" type="submit" [disabled]="savingPassword()">
+                <i class="bi bi-shield-lock" aria-hidden="true"></i> {{ savingPassword() ? 'Updating…' : 'Update password' }}
+              </button>
+            </div>
+          </form>
+          }
+        </div>
+      </section>
+
+      <!-- Consent -->
+      <section class="card" aria-labelledby="s-consent">
+        <div class="card-header"><h2 id="s-consent" class="sec"><i class="bi bi-envelope-heart" aria-hidden="true"></i> Communication preferences</h2></div>
+        <div class="card-body">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="st-consent"
+              [checked]="marketing()" [disabled]="consentBusy()" (change)="toggleConsent($event)" />
+            <label class="form-check-label" for="st-consent">Send me job alerts, career tips and Veejee Services updates by email</label>
+          </div>
+          <p class="text-secondary small mt-2 mb-0">Transactional emails (verification, application and interview updates) are always sent.</p>
+        </div>
+      </section>
+
+      <!-- Data & sessions -->
+      <div class="row g-4">
+        <div class="col-12 col-md-6">
+          <section class="card h-100" aria-labelledby="s-data">
+            <div class="card-body d-flex flex-column">
+              <span class="tile-icon" aria-hidden="true"><i class="bi bi-cloud-download"></i></span>
+              <h2 id="s-data" class="h6 mt-3">Your data</h2>
+              <p class="text-secondary small flex-grow-1">Download a copy of the personal data Veejee Services holds about you (JSON).</p>
+              <button class="btn btn-outline-primary" type="button" (click)="exportData()" [disabled]="exporting()">
+                <i class="bi bi-download" aria-hidden="true"></i> {{ exporting() ? 'Preparing…' : 'Export my data' }}
+              </button>
+            </div>
+          </section>
+        </div>
+        <div class="col-12 col-md-6">
+          <section class="card h-100" aria-labelledby="s-sessions">
+            <div class="card-body d-flex flex-column">
+              <span class="tile-icon" aria-hidden="true"><i class="bi bi-laptop"></i></span>
+              <h2 id="s-sessions" class="h6 mt-3">Sessions</h2>
+              <p class="text-secondary small flex-grow-1">Signed in on a shared or lost device? Revoke every active session.</p>
+              <button class="btn btn-outline-primary" type="button" (click)="logoutAll()" [disabled]="signingOutAll()">
+                <i class="bi bi-box-arrow-right" aria-hidden="true"></i> Sign out of all devices
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- Danger -->
+      <section class="card border-danger danger-zone" aria-labelledby="s-danger">
+        <div class="card-body d-flex flex-wrap align-items-center gap-3">
+          <span class="danger-icon" aria-hidden="true"><i class="bi bi-exclamation-triangle-fill"></i></span>
+          <div class="flex-grow-1 min-w-0">
+            <h2 id="s-danger" class="h6 text-danger mb-1">Delete account</h2>
+            <p class="text-secondary small mb-0">Permanently anonymise your account and delete your resumes. This cannot be undone.</p>
+          </div>
+          <button class="btn btn-outline-danger" type="button" (click)="deleteAccount()" data-testid="delete-account">
+            <i class="bi bi-trash3" aria-hidden="true"></i> Delete my account
+          </button>
+        </div>
+      </section>
+    </div>
+  </div>
+}

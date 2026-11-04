@@ -1,0 +1,221 @@
+.head-card {
+  overflow: hidden;
+  margin-bottom: var(--an-space-4);
+}
+.cover {
+  height: 72px;
+  background:
+    radial-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1.4px) 0 0 / 12px 12px,
+    linear-gradient(120deg, var(--an-navy-900), var(--an-navy-600));
+}
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--an-space-4);
+  align-items: flex-start;
+}
+.avatar {
+  flex: none;
+  width: 84px;
+  height: 84px;
+  margin-top: -54px;
+  border-radius: 50%;
+  border: 4px solid #fff;
+  background: var(--an-gold-500);
+  color: var(--an-navy-950);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--an-font-heading);
+  font-weight: 800;
+  font-size: 1.6rem;
+  box-shadow: var(--an-shadow-2);
+}
+.who {
+  flex: 1 1 320px;
+  min-width: 0;
+  h1 {
+    overflow-wrap: anywhere;
+  }
+}
+.contact {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  font-size: 0.92rem;
+  li {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .bi {
+    color: var(--an-gold-600);
+  }
+}
+.consent {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  white-space: normal;
+  text-align: left;
+  font-size: 0.76rem;
+}
+.consent.ok {
+  background: var(--an-success-bg);
+  color: var(--an-success);
+  border: 1px solid #b7e0c7;
+}
+.consent.no {
+  background: var(--an-danger-bg);
+  color: var(--an-danger);
+  border: 1px solid #f5c2bd;
+}
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--an-space-3);
+  align-items: flex-start;
+}
+@media (min-width: 1200px) {
+  .actions {
+    align-items: flex-end;
+  }
+}
+:host ::ng-deep .assign-btn {
+  gap: 6px;
+}
+.layout {
+  display: grid;
+  gap: var(--an-space-4);
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 992px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+  }
+}
+.main,
+.aside {
+  display: grid;
+  gap: var(--an-space-4);
+  min-width: 0;
+}
+.sec {
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  .bi {
+    color: var(--an-gold-600);
+  }
+}
+.sub {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--an-text-muted);
+}
+.kv {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--an-space-3);
+  div {
+    background: var(--an-surface-2);
+    border-radius: var(--an-radius);
+    padding: var(--an-space-2) var(--an-space-3);
+  }
+  span {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--an-text-muted);
+  }
+}
+.skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tech {
+  background: var(--an-navy-50);
+  color: var(--an-navy-800);
+  border: 1px solid var(--an-navy-100);
+}
+.soft {
+  background: var(--an-gold-100);
+  color: var(--an-gold-700);
+  border: 1px solid var(--an-gold-300);
+}
+.timeline {
+  list-style: none;
+  padding: 0 0 0 18px;
+  margin: 0;
+  border-left: 2px solid var(--an-border);
+  display: grid;
+  gap: var(--an-space-3);
+  li {
+    position: relative;
+  }
+  li::before {
+    content: '';
+    position: absolute;
+    left: -25px;
+    top: 6px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--an-gold-500);
+    border: 2px solid #fff;
+  }
+}
+.min-w-0 {
+  min-width: 0;
+}
+.prefs {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+  div {
+    display: grid;
+    gap: 2px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed var(--an-border);
+  }
+  div:last-child {
+    border-bottom: 0;
+  }
+  dt {
+    font-size: 0.78rem;
+    color: var(--an-text-muted);
+    font-weight: 500;
+  }
+  dd {
+    margin: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+}
+.resume {
+  display: flex;
+  align-items: center;
+  gap: var(--an-space-2);
+}
+.notes {
+  border-top: 3px solid var(--an-navy-700);
+}
+.internal {
+  background: var(--an-navy-50);
+  color: var(--an-navy-800);
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+.note {
+  background: var(--an-surface-2);
+  border-radius: var(--an-radius);
+  padding: var(--an-space-2) var(--an-space-3);
+}

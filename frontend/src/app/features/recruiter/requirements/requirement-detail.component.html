@@ -1,0 +1,142 @@
+@if (detail.isLoading() && !detail.value()) {
+  <app-skeleton variant="lines" [count]="6" />
+} @else if (detail.error()) {
+  <app-empty-state [tone]="notFound() ? 'neutral' : 'error'" [illustration]="notFound() ? 'not-found' : 'error'"
+    [title]="notFound() ? 'Requirement not found' : 'Requirement could not be loaded'">
+    <a class="btn btn-primary" routerLink="/recruiter/requirements">All requirements</a>
+    @if (!notFound()) { <button class="btn btn-outline-primary" type="button" (click)="detail.reload()">Retry</button> }
+  </app-empty-state>
+} @else if (req(); as r) {
+  <nav aria-label="Breadcrumb">
+    <ol class="breadcrumb small">
+      <li class="breadcrumb-item"><a routerLink="/recruiter/requirements">Requirements</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{ r.title }}</li>
+    </ol>
+  </nav>
+
+  <header class="head card">
+    <div class="card-body">
+      <div class="d-flex flex-wrap gap-3 justify-content-between align-items-start">
+        <div class="min-w-0 flex-grow-1">
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+            <app-status-chip [status]="r.status" />
+            @if (r.confidential) {
+              <span class="badge text-bg-dark"><i class="bi bi-incognito" aria-hidden="true"></i> Confidential — client name hidden from candidates</span>
+            }
+            @if (r.featured) { <span class="badge text-bg-gold"><i class="bi bi-star-fill" aria-hidden="true"></i> Featured</span> }
+          </div>
+          <h1 class="h3 mb-1">{{ r.title }}</h1>
+          <p class="mb-0 text-secondary"><i class="bi bi-building" aria-hidden="true"></i> {{ company() }}</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <button type="button" class="btn btn-outline-primary" (click)="assign()"><i class="bi bi-person-plus" aria-hidden="true"></i> {{ assignee() }}</button>
+        </div>
+      </div>
+
+      <ul class="facts">
+        <li><i class="bi bi-geo-alt" aria-hidden="true"></i><span>{{ r.locations | locations: 3 }}</span></li>
+        <li><i class="bi bi-briefcase" aria-hidden="true"></i><span>{{ r.employmentType | enumLabel }} · {{ r.workMode | enumLabel }}</span></li>
+        <li><i class="bi bi-bar-chart-steps" aria-hidden="true"></i><span>{{ r.experience.min }}–{{ r.experience.max }} yrs experience</span></li>
+        <li><i class="bi bi-cash-stack" aria-hidden="true"></i><span>{{ r.salary | salaryRange }}</span></li>
+        <li><i class="bi bi-people" aria-hidden="true"></i><span>{{ r.filledCount ?? 0 }} of {{ r.openings }} vacancies filled</span></li>
+        @if (r.noticePeriodMaxDays) {
+          <li><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Notice ≤ {{ r.noticePeriodMaxDays }} days</span></li>
+        }
+        @if (r.applicationDeadline) {
+          <li><i class="bi bi-calendar-x" aria-hidden="true"></i><span>Closes {{ r.applicationDeadline | date: 'mediumDate' }}</span></li>
+        }
+      </ul>
+      @if (r.skills.length) {
+        <ul class="chips" aria-label="Required skills">
+          @for (s of r.skills; track $index) { <li class="badge skill">{{ s }}</li> }
+        </ul>
+      }
+      @if (r.qualifications.length) {
+        <p class="small text-secondary mb-0 mt-2"><i class="bi bi-mortarboard" aria-hidden="true"></i> {{ r.qualifications.join(' · ') }}</p>
+      }
+      <button type="button" class="btn btn-link btn-sm px-0 mt-2" (click)="showDescription.set(!showDescription())" [attr.aria-expanded]="showDescription()" aria-controls="rq-desc">
+        {{ showDescription() ? 'Hide' : 'Show' }} job description
+      </button>
+      @if (showDescription()) {
+        <p class="prose small mb-0" id="rq-desc">{{ r.description }}</p>
+      }
+    </div>
+  </header>
+
+  <ul class="nav nav-tabs nav-scroll mt-4" role="tablist" aria-label="Requirement workspace">
+    @for (t of tabs; track t.key; let i = $index) {
+      <li class="nav-item" role="presentation">
+        <button type="button" class="nav-link" role="tab" [id]="'rq-tab-' + t.key" [class.active]="active() === t.key"
+          [attr.aria-selected]="active() === t.key" [attr.aria-controls]="'rq-panel-' + t.key" [attr.tabindex]="active() === t.key ? 0 : -1"
+          (click)="select(t.key)" (keydown)="onTabKey($event, i)">{{ t.label }}</button>
+      </li>
+    }
+  </ul>
+
+  <section class="panel" role="tabpanel" [id]="'rq-panel-' + active()" [attr.aria-labelledby]="'rq-tab-' + active()">
+    @switch (active()) {
+      @case ('matching') {
+        <app-matching-tab [requirementId]="r.id" (shortlisted)="onShortlisted()" />
+      }
+      @case ('shortlist') {
+        <app-shortlist-tab [requirementId]="r.id" [companyName]="company()" [version]="shortlistVersion()" (changed)="detail.reload()" />
+      }
+      @case ('applicants') {
+        <ul class="list-unstyled d-grid gap-3 m-0">
+          @for (a of detail.value()?.applications ?? []; track a.id) {
+            <li class="card" data-testid="requirement-applicant">
+              <div class="card-body d-flex flex-wrap gap-3 align-items-start">
+                <div class="min-w-0 flex-grow-1">
+                  <h2 class="h6 mb-1">
+                    @if (appProfileId(a); as pid) {
+                      <a [routerLink]="['/recruiter/candidates', pid]">{{ appName(a) }}</a>
+                    } @else { {{ appName(a) }} }
+                  </h2>
+                  <p class="small text-secondary mb-2">
+                    {{ appProfile(a)?.headline || '' }}
+                    @if (appProfile(a)?.totalExperienceYears !== undefined) { · {{ appProfile(a)?.totalExperienceYears }} yrs }
+                    · applied {{ a.createdAt | date: 'mediumDate' }}
+                  </p>
+                  <app-status-chip [status]="a.status" />
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                  @if (a.status === 'applied') {
+                    <button type="button" class="btn btn-sm btn-outline-primary" (click)="review(a)">Mark under review</button>
+                  }
+                  @if (a.status === 'applied' || a.status === 'under_review') {
+                    <button type="button" class="btn btn-sm btn-gold" (click)="shortlistApplication(a)" [disabled]="busy() === a.id">
+                      <i class="bi bi-star" aria-hidden="true"></i> Shortlist
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" (click)="notSuitable(a)">Not shortlisted</button>
+                  }
+                </div>
+              </div>
+            </li>
+          } @empty {
+            <li><app-empty-state illustration="empty-applications" title="No applications yet" message="Candidates who apply through Veejee Services for this role will appear here. Use Candidate matching to find people in the database." /></li>
+          }
+        </ul>
+      }
+      @case ('submissions') {
+        <ul class="list-unstyled d-grid gap-3 m-0">
+          @for (s of detail.value()?.submissions ?? []; track s.id) {
+            <li class="card card-hover">
+              <div class="card-body d-flex flex-wrap gap-3 align-items-center justify-content-between">
+                <div class="min-w-0">
+                  <h2 class="h6 mb-1">{{ s.candidate.name }}</h2>
+                  <p class="small text-secondary mb-0">Submitted {{ s.createdAt | date: 'mediumDate' }} · contact {{ s.contactShared ? 'shared' : 'not shared' }}</p>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <app-status-chip [status]="s.status" />
+                  <a class="btn btn-sm btn-primary" [routerLink]="['/recruiter/submissions', s.id]">Open <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                </div>
+              </div>
+            </li>
+          } @empty {
+            <li><app-empty-state illustration="empty-data" title="Nothing submitted yet" message="Approved shortlisted candidates can be submitted to the company from the Shortlist tab." /></li>
+          }
+        </ul>
+      }
+    }
+  </section>
+}

@@ -1,0 +1,190 @@
+@if (jobRes.isLoading() && !job()) {
+  <div class="container section"><app-skeleton variant="lines" [count]="8" /></div>
+} @else if (jobRes.error()) {
+  <div class="container section">
+    <app-empty-state
+      [tone]="notFound() ? 'neutral' : 'error'"
+      [illustration]="notFound() ? 'not-found' : 'error'"
+      [title]="notFound() ? 'This job is no longer available' : 'The job could not be loaded'"
+      [message]="notFound() ? 'It may have been filled or closed. Explore similar openings instead.' : 'Please try again.'"
+    >
+      <a class="btn btn-primary" routerLink="/jobs">Browse jobs</a>
+      @if (!notFound()) {
+        <button class="btn btn-outline-primary" type="button" (click)="jobRes.reload()">Retry</button>
+      }
+    </app-empty-state>
+  </div>
+} @else if (job(); as j) {
+  <section class="hero hero-navy">
+    <div class="container">
+      <nav aria-label="Breadcrumb">
+        <ol class="breadcrumb crumbs">
+          <li class="breadcrumb-item"><a routerLink="/jobs">Jobs</a></li>
+          <li class="breadcrumb-item"><a [routerLink]="['/industries', j.industry.slug]">{{ j.industry.name }}</a></li>
+          <li class="breadcrumb-item active" aria-current="page">{{ j.title }}</li>
+        </ol>
+      </nav>
+      <div class="head">
+        <app-company-logo class="logo" [employerId]="j.employer?.id" [hasLogo]="j.employer?.hasLogo ?? false" [name]="company()" [size]="76" />
+        <div class="head-text">
+          <div class="d-flex flex-wrap gap-2 mb-2">
+            @if (j.featured) {
+              <span class="badge text-bg-gold"><i class="bi bi-star-fill" aria-hidden="true"></i> Featured</span>
+            }
+            @if (j.status !== 'published') {
+              <app-status-chip [status]="j.status" />
+            }
+          </div>
+          <h1 class="title" data-testid="job-title">{{ j.title }}</h1>
+          <p class="company">
+            @if (j.employer; as emp) {
+              <a [routerLink]="['/employers', emp.slug]">{{ emp.companyName }}</a>
+              @if (emp.verificationStatus === 'verified') {
+                <i class="bi bi-patch-check-fill verified" aria-label="Verified client company" title="Verified client company"></i>
+              }
+            } @else {
+              <span><i class="bi bi-incognito" aria-hidden="true"></i> {{ company() }}</span>
+            }
+          </p>
+          <ul class="facts">
+            <li><i class="bi bi-geo-alt" aria-hidden="true"></i>{{ j.locations | locations: 5 }}</li>
+            <li><i class="bi bi-briefcase" aria-hidden="true"></i>{{ j.employmentType | enumLabel }} · {{ j.workMode | enumLabel }}</li>
+            <li><i class="bi bi-bar-chart-steps" aria-hidden="true"></i>{{ experienceText() }}</li>
+            <li><i class="bi bi-cash-stack" aria-hidden="true"></i>{{ j.salary | salaryRange }}</li>
+          </ul>
+        </div>
+        <app-illustration name="company" class="head-art d-none d-xl-block" />
+      </div>
+    </div>
+  </section>
+
+  <div class="container layout">
+    <article class="main">
+      @if (j.status === 'rejected' && j.rejectionReason) {
+        <div class="alert alert-danger d-flex gap-2" role="note">
+          <i class="bi bi-exclamation-octagon-fill" aria-hidden="true"></i>
+          <span><strong>Rejected by moderation:</strong> {{ j.rejectionReason }}</span>
+        </div>
+      }
+      <section class="card">
+        <div class="card-body">
+          <h2 class="sec-title"><i class="bi bi-file-text" aria-hidden="true"></i> Job description</h2>
+          <p class="prose mb-0">{{ j.description }}</p>
+        </div>
+      </section>
+      @if (j.responsibilities.length) {
+        <section class="card">
+          <div class="card-body">
+            <h2 class="sec-title"><i class="bi bi-list-check" aria-hidden="true"></i> Responsibilities</h2>
+            <ul class="ticks">
+              @for (r of j.responsibilities; track $index) {
+                <li><i class="bi bi-check2" aria-hidden="true"></i>{{ r }}</li>
+              }
+            </ul>
+          </div>
+        </section>
+      }
+      @if (j.requirements.length) {
+        <section class="card">
+          <div class="card-body">
+            <h2 class="sec-title"><i class="bi bi-clipboard-check" aria-hidden="true"></i> Requirements</h2>
+            <ul class="ticks">
+              @for (r of j.requirements; track $index) {
+                <li><i class="bi bi-check2" aria-hidden="true"></i>{{ r }}</li>
+              }
+            </ul>
+          </div>
+        </section>
+      }
+      @if (j.qualifications.length) {
+        <section class="card">
+          <div class="card-body">
+            <h2 class="sec-title"><i class="bi bi-mortarboard" aria-hidden="true"></i> Qualifications</h2>
+            <ul class="ticks">
+              @for (q of j.qualifications; track $index) {
+                <li><i class="bi bi-check2" aria-hidden="true"></i>{{ q }}</li>
+              }
+            </ul>
+          </div>
+        </section>
+      }
+      @if (j.skills.length) {
+        <section class="card">
+          <div class="card-body">
+            <h2 class="sec-title"><i class="bi bi-stars" aria-hidden="true"></i> Skills</h2>
+            <ul class="skills">
+              @for (s of j.skills; track $index) {
+                <li class="badge skill">{{ s }}</li>
+              }
+            </ul>
+          </div>
+        </section>
+      }
+    </article>
+
+    <aside class="aside">
+      <div class="card apply-card" data-testid="apply-panel">
+        <div class="card-body d-flex flex-column gap-2">
+          @if (!auth.isAuthenticated()) {
+            <h2 class="h5 mb-0">Interested in this role?</h2>
+            <p class="text-secondary small mb-2">Apply through Veejee Services – sign in or register free as a candidate. Our recruiters review every application.</p>
+            <a class="btn btn-gold btn-lg" routerLink="/auth/login" [queryParams]="loginReturn()" data-testid="apply-button">Apply through Veejee Services</a>
+            <a class="btn btn-outline-primary" routerLink="/auth/register/candidate">Register as a candidate</a>
+          } @else if (auth.role() === 'candidate') {
+            @if (j.hasApplied) {
+              <div class="applied" role="status">
+                <i class="bi bi-check2-circle fs-3" aria-hidden="true"></i>
+                <div><strong>Applied</strong><p class="mb-0 small">A Veejee Services recruiter will review your application.</p></div>
+              </div>
+              <button class="btn btn-outline-primary" type="button" (click)="goToApplications()">View my applications</button>
+            } @else if (isOpen()) {
+              <h2 class="h5 mb-0">Ready to apply?</h2>
+              <p class="text-secondary small mb-2">Your application goes to Veejee Services. If you are shortlisted, we share your profile with the company only with your consent.</p>
+              <button class="btn btn-gold btn-lg" type="button" (click)="apply()" data-testid="apply-button"><i class="bi bi-send" aria-hidden="true"></i> Apply through Veejee Services</button>
+            } @else {
+              <p class="text-secondary mb-2">{{ deadlinePassed() ? 'The application deadline has passed.' : 'This job is not accepting applications.' }}</p>
+            }
+            <button class="btn btn-outline-secondary" type="button" (click)="toggleSave()" [disabled]="saved.isPending(j.id)" [attr.aria-pressed]="saved.isSaved(j)">
+              <i [class]="saved.isSaved(j) ? 'bi bi-bookmark-fill text-gold' : 'bi bi-bookmark'" aria-hidden="true"></i>
+              {{ saved.isSaved(j) ? 'Saved' : 'Save job' }}
+            </button>
+          } @else {
+            <h2 class="h5 mb-0">Job overview</h2>
+            <p class="text-secondary small mb-0">Candidates apply through Veejee Services with a candidate account. Our recruiters screen applications and share suitable, consented profiles with the company.</p>
+          }
+          <button class="btn btn-link" type="button" (click)="share()"><i class="bi bi-share" aria-hidden="true"></i> Share this job</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <h2 class="h6 mb-3"><i class="bi bi-info-circle text-gold" aria-hidden="true"></i> Job summary</h2>
+          <ul class="summary">
+            <li><span class="s-ic"><i class="bi bi-grid" aria-hidden="true"></i></span><span class="lbl">Industry</span><span class="val">{{ j.industry.name }}</span></li>
+            @if (j.category) {
+              <li><span class="s-ic"><i class="bi bi-tag" aria-hidden="true"></i></span><span class="lbl">Category</span><span class="val">{{ j.category.name }}</span></li>
+            }
+            <li><span class="s-ic"><i class="bi bi-people" aria-hidden="true"></i></span><span class="lbl">Openings</span><span class="val">{{ j.openings | number }}</span></li>
+            <li><span class="s-ic"><i class="bi bi-clock" aria-hidden="true"></i></span><span class="lbl">Posted</span><span class="val">{{ j.publishedAt || j.createdAt | timeAgo }}</span></li>
+            @if (j.applicationDeadline) {
+              <li><span class="s-ic"><i class="bi bi-calendar-x" aria-hidden="true"></i></span><span class="lbl">Apply by</span>
+                <span class="val" [class.text-danger]="deadlinePassed()">{{ j.applicationDeadline | date: 'mediumDate' }}</span></li>
+            }
+            <li><span class="s-ic"><i class="bi bi-person-check" aria-hidden="true"></i></span><span class="lbl">Applicants</span><span class="val">{{ j.applicationsCount | number }}</span></li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  @if ((similar.value() ?? []).length) {
+    <section class="container similar">
+      <h2 class="h4 mb-3">Similar jobs</h2>
+      <div class="grid">
+        @for (s of similar.value() ?? []; track s.id) {
+          <app-job-card [job]="s" [compact]="true" />
+        }
+      </div>
+    </section>
+  }
+}

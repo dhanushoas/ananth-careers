@@ -1,0 +1,186 @@
+<section class="search-hero hero-navy">
+  <div class="container hero-grid">
+    <div class="min-w-0">
+      <span class="eyebrow">Job opportunities</span>
+      <h1 class="title">Job opportunities through Veejee Services</h1>
+      <p class="sub">Browse open roles at our client companies and apply through Veejee Services – our recruiters do the rest.</p>
+      <form class="search-bar card" [formGroup]="searchForm" (ngSubmit)="submitSearch()" role="search" aria-label="Job search">
+        <div class="card-body">
+          <div class="row g-2 align-items-stretch">
+            <div class="col-12 col-md-6">
+              <div class="input-group h-100">
+                <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+                <div class="form-floating">
+                  <input class="form-control" id="s-q" formControlName="q" placeholder=" " data-testid="search-keyword" />
+                  <label for="s-q">Keyword</label>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="input-group h-100">
+                <span class="input-group-text"><i class="bi bi-geo-alt" aria-hidden="true"></i></span>
+                <div class="form-floating">
+                  <input class="form-control" id="s-loc" formControlName="location" placeholder=" " data-testid="search-location" />
+                  <label for="s-loc">Location</label>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-md-2 d-grid">
+              <button class="btn btn-gold btn-lg" type="submit" data-testid="search-submit">Search</button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <app-illustration name="jobs" class="hero-art d-none d-lg-block" />
+  </div>
+  <app-section-divider variant="curve" color="#f6f8fb" />
+</section>
+
+<div class="container layout">
+  <app-offcanvas [(open)]="filtersOpen" responsive="lg" placement="start" label="Filters" panelId="job-filters-panel" panelClass="filters-panel">
+    <span offcanvasTitle class="fw-bold">Filters</span>
+    <div class="filters" data-testid="job-filters" aria-label="Filters" role="region">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <h2 class="h6 m-0"><i class="bi bi-funnel text-gold" aria-hidden="true"></i> Refine results</h2>
+        @if (activeFilterCount() > 0) {
+          <button class="btn btn-link btn-sm p-0" type="button" (click)="clearFilters()">Clear all</button>
+        }
+      </div>
+
+      <div class="form-floating mb-3">
+        <select class="form-select" id="f-industry" (change)="setFromSelect('industry', $event)" data-testid="filter-industry">
+          <option value="" [selected]="!query().industry">All industries</option>
+          @for (i of industries(); track i.id) {
+            <option [value]="i.slug" [selected]="query().industry === i.slug || query().industry === i.id">{{ i.name }}</option>
+          }
+        </select>
+        <label for="f-industry">Industry</label>
+      </div>
+
+      @if ((categories.value() ?? []).length) {
+        <div class="form-floating mb-3">
+          <select class="form-select" id="f-category" (change)="setFromSelect('category', $event)">
+            <option value="" [selected]="!query().category">All categories</option>
+            @for (c of categories.value() ?? []; track c.id) {
+              <option [value]="c.id" [selected]="query().category === c.id">{{ c.name }}</option>
+            }
+          </select>
+          <label for="f-category">Category</label>
+        </div>
+      }
+
+      <fieldset class="group">
+        <legend>Employment type</legend>
+        @for (t of employmentTypes; track t) {
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" [id]="'et-' + t" [checked]="isChecked('employmentType', t)"
+              (change)="setFromCheckbox('employmentType', t, $event)" />
+            <label class="form-check-label" [for]="'et-' + t">{{ t | enumLabel }}</label>
+          </div>
+        }
+      </fieldset>
+
+      <fieldset class="group">
+        <legend>Work mode</legend>
+        @for (m of workModes; track m) {
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" [id]="'wm-' + m" [checked]="isChecked('workMode', m)"
+              (change)="setFromCheckbox('workMode', m, $event)" />
+            <label class="form-check-label" [for]="'wm-' + m">{{ m | enumLabel }}</label>
+          </div>
+        }
+      </fieldset>
+
+      <div class="form-floating mb-3">
+        <input class="form-control" id="f-exp" type="number" min="0" max="50" placeholder=" " [value]="query().experience ?? ''"
+          (change)="setFromInput('experience', $event)" data-testid="filter-experience" />
+        <label for="f-exp">Your experience (years)</label>
+      </div>
+
+      <div class="form-floating mb-3">
+        <select class="form-select" id="f-salary" (change)="setFromSelect('salaryMin', $event)">
+          <option value="" [selected]="query().salaryMin === undefined">Any</option>
+          @for (s of salaryOptions; track s.value) {
+            <option [value]="s.value" [selected]="query().salaryMin === s.value">{{ s.label }} per year</option>
+          }
+        </select>
+        <label for="f-salary">Minimum salary</label>
+      </div>
+
+      <div class="form-floating mb-3">
+        <select class="form-select" id="f-posted" (change)="setFromSelect('postedWithin', $event)">
+          <option value="" [selected]="query().postedWithin === undefined">Any time</option>
+          @for (p of postedOptions; track p.value) {
+            <option [value]="p.value" [selected]="query().postedWithin === p.value">{{ p.label }}</option>
+          }
+        </select>
+        <label for="f-posted">Date posted</label>
+      </div>
+
+      <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" role="switch" id="f-featured" [checked]="query().featured === true"
+          (change)="setFeatured($event)" />
+        <label class="form-check-label" for="f-featured">Featured jobs only</label>
+      </div>
+
+      <button class="btn btn-primary w-100 mt-4 d-lg-none" type="button" (click)="filtersOpen.set(false)">Show results</button>
+    </div>
+  </app-offcanvas>
+
+  <section class="results" aria-labelledby="results-heading">
+    <div class="results-head">
+      <div class="grow">
+        <h2 id="results-heading" class="h">{{ heading() }}</h2>
+        @if (results.value(); as r) {
+          <p class="count" aria-live="polite" data-testid="results-count">
+            <strong>{{ r.total }}</strong> {{ r.total === 1 ? 'job' : 'jobs' }} found
+          </p>
+        }
+      </div>
+      <button class="btn btn-outline-primary d-lg-none" type="button" (click)="filtersOpen.set(true)"
+        aria-controls="job-filters-panel" [attr.aria-expanded]="filtersOpen()">
+        <i class="bi bi-sliders" aria-hidden="true"></i> Filters
+        @if (activeFilterCount() > 0) {
+          <span class="badge text-bg-gold">{{ activeFilterCount() }}</span>
+        }
+      </button>
+      <div class="form-floating sort">
+        <select class="form-select" id="f-sort" (change)="setFromSelect('sort', $event)">
+          @for (s of sorts; track s) {
+            <option [value]="s" [selected]="(query().sort ?? 'relevance') === s">{{ s === 'salary_high' ? 'Highest salary' : s === 'latest' ? 'Most recent' : 'Relevance' }}</option>
+          }
+        </select>
+        <label for="f-sort">Sort by</label>
+      </div>
+    </div>
+
+    @if (results.isLoading()) {
+      <app-skeleton variant="job-card" [count]="6" />
+    } @else if (results.error()) {
+      <app-empty-state tone="error" title="Jobs could not be loaded" message="Please check your connection and try again.">
+        <button class="btn btn-primary" type="button" (click)="results.reload()"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Retry</button>
+      </app-empty-state>
+    } @else if (results.value(); as r) {
+      <div class="grid">
+        @for (job of r.items; track job.id) {
+          <app-job-card
+            [job]="job"
+            [showSave]="saved.canSave()"
+            [saved]="saved.isSaved(job)"
+            [saving]="saved.isPending(job.id)"
+            (saveToggle)="toggleSave($event)"
+          />
+        } @empty {
+          <app-empty-state illustration="empty-search" title="No jobs match your search"
+            message="Try different keywords, a broader location or fewer filters.">
+            @if (activeFilterCount() > 0) {
+              <button class="btn btn-outline-primary" type="button" (click)="clearFilters()">Clear filters</button>
+            }
+          </app-empty-state>
+        }
+      </div>
+      <app-paginator [page]="r.page" [limit]="r.limit" [total]="r.total" [pageSizeOptions]="[12]" (pageChange)="onPage($event)" />
+    }
+  </section>
+</div>

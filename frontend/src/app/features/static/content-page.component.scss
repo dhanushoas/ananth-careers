@@ -1,0 +1,98 @@
+.updated {
+  margin: var(--an-space-3) 0 0;
+  color: var(--an-on-dark-2);
+}
+.body {
+  padding-block: var(--an-space-5) var(--an-space-8);
+  display: grid;
+  gap: var(--an-space-6);
+}
+.faq-grid {
+  display: grid;
+  gap: var(--an-space-5);
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 992px) {
+  .faq-grid {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    align-items: start;
+  }
+  .help {
+    position: sticky;
+    top: calc(var(--an-header-h) + 16px);
+  }
+}
+.accordion-item {
+  margin-bottom: var(--an-space-2);
+  border-radius: var(--an-radius) !important;
+  overflow: hidden;
+  border: 1px solid var(--an-border);
+}
+.accordion-button {
+  font-weight: 600;
+  min-height: 56px;
+}
+.help-art {
+  width: 140px;
+  margin: 0 auto var(--an-space-3);
+}
+.value-grid,
+.service-grid {
+  display: grid;
+  gap: var(--an-space-4);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+}
+.v-icon,
+.s-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  background: linear-gradient(135deg, var(--an-navy-900), var(--an-navy-600));
+  color: var(--an-gold-300);
+}
+.s-icon {
+  background: var(--an-gold-100);
+  color: var(--an-gold-700);
+}
+.article-grid {
+  display: grid;
+  gap: var(--an-space-5);
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 992px) {
+  .article-grid.with-toc {
+    grid-template-columns: 260px minmax(0, 1fr);
+    align-items: start;
+  }
+  .toc {
+    position: sticky;
+    top: calc(var(--an-header-h) + 16px);
+  }
+}
+.toc ol {
+  padding-left: 1.2em;
+  display: grid;
+  gap: 6px;
+  font-size: 0.92rem;
+}
+.article {
+  display: grid;
+  gap: var(--an-space-3);
+  min-width: 0;
+}
+.sec {
+  scroll-margin-top: calc(var(--an-header-h) + 16px);
+}
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--an-space-4);
+  padding: var(--an-space-5);
+  border-radius: var(--an-radius-xl);
+}

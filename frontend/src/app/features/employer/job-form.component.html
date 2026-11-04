@@ -1,0 +1,305 @@
+<app-page-header
+  eyebrow="Hiring"
+  [title]="isEdit() ? 'Edit requirement' : 'Post a recruitment requirement'"
+  [subtitle]="isEdit() ? (job()?.title ?? '') : 'Tell us who you need. Veejee Services approves the requirement, screens candidates and submits only consented, shortlisted profiles to you.'"
+  illustration="jobs"
+>
+  @if (job(); as j) {
+    <app-status-chip [status]="j.status" />
+  }
+</app-page-header>
+
+@if (submitBlocked()) {
+  <div class="alert alert-warning d-flex gap-2 align-items-start" role="status">
+    <i class="bi bi-hourglass-split mt-1" aria-hidden="true"></i>
+    <div>
+      <strong>Your company is not verified yet.</strong>
+      {{ ctx.employer()?.verificationStatus === 'rejected' ? 'Verification was not approved' + (ctx.employer()?.rejectionReason ? ': ' + ctx.employer()?.rejectionReason : '.') : 'Veejee Services is verifying your company.' }}
+      You can save this requirement as a draft and submit it for approval once your company is verified.
+      <a routerLink="/employer/company" class="alert-link">Company profile</a>
+    </div>
+  </div>
+}
+
+@if (loading()) {
+  <app-skeleton variant="card" [count]="2" />
+} @else if (loadError()) {
+  <app-empty-state tone="error" illustration="error" title="This requirement could not be loaded" message="It may have been deleted, or you may not have access.">
+    <a class="btn btn-outline-primary" routerLink="/employer/requirements"><i class="bi bi-arrow-left" aria-hidden="true"></i>Back to requirements</a>
+  </app-empty-state>
+} @else {
+  @if (returnsToApproval()) {
+    <div class="alert alert-warning d-flex gap-2 align-items-start" role="status">
+      <i class="bi bi-info-circle-fill mt-1" aria-hidden="true"></i>
+      <div>
+        Saving changes to a {{ job()?.status === 'published' ? 'published' : 'rejected' }} requirement sends it back to the Veejee Services team for approval.
+        @if (job()?.status === 'published') { It will be hidden from search until approved again. }
+      </div>
+    </div>
+  }
+  @if (job()?.status === 'rejected' && job()?.rejectionReason) {
+    <div class="alert alert-danger d-flex gap-2 align-items-start"><i class="bi bi-exclamation-octagon-fill mt-1" aria-hidden="true"></i><div>Rejection reason: {{ job()?.rejectionReason }}</div></div>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="save(isEdit() ? 'save' : submitBlocked() ? 'draft' : 'submit')" novalidate class="d-grid gap-4">
+    @if (formError()) {
+      <div class="alert alert-danger mb-0" role="alert"><i class="bi bi-exclamation-triangle-fill me-2" aria-hidden="true"></i>{{ formError() }}</div>
+    }
+
+    <section class="card section-card">
+      <div class="card-header"><span class="step">1</span><h2 class="h6 mb-0">Basics</h2><i class="bi bi-card-heading ms-auto" aria-hidden="true"></i></div>
+      <div class="card-body">
+        <div class="row g-3 align-items-start">
+          <div class="col-12">
+            <div class="form-floating">
+              <input class="form-control" id="job-title" formControlName="title" placeholder=" " required maxlength="150" />
+              <label for="job-title">Job title</label>
+            </div>
+            <app-field-error [control]="form.controls.title" label="Job title" />
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-floating">
+              <select class="form-select" id="job-industry" formControlName="industry" required>
+                <option value="" disabled>Select an industry</option>
+                @for (i of industries(); track i.id) {
+                  <option [value]="i.id">{{ i.name }}</option>
+                }
+              </select>
+              <label for="job-industry">Industry</label>
+            </div>
+            <app-field-error [control]="form.controls.industry" label="Industry" />
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-floating">
+              <select class="form-select" id="job-category" formControlName="category">
+                <option value="">None</option>
+                @for (c of categories(); track c.id) {
+                  <option [value]="c.id">{{ c.name }}</option>
+                }
+              </select>
+              <label for="job-category">Category (optional)</label>
+            </div>
+            @if (!form.controls.industry.value) { <div class="form-text">Choose an industry first to see its categories.</div> }
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-floating">
+              <select class="form-select" id="job-type" formControlName="employmentType" required>
+                @for (t of employmentTypes; track t) {
+                  <option [value]="t">{{ t | enumLabel }}</option>
+                }
+              </select>
+              <label for="job-type">Employment type</label>
+            </div>
+            <app-field-error [control]="form.controls.employmentType" label="Employment type" />
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-floating">
+              <select class="form-select" id="job-mode" formControlName="workMode" required>
+                @for (m of workModes; track m) {
+                  <option [value]="m">{{ m | enumLabel }}</option>
+                }
+              </select>
+              <label for="job-mode">Work mode</label>
+            </div>
+            <app-field-error [control]="form.controls.workMode" label="Work mode" />
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-floating">
+              <input class="form-control" id="job-openings" type="number" formControlName="openings" min="1" placeholder=" " required />
+              <label for="job-openings">Vacancies</label>
+            </div>
+            <app-field-error [control]="form.controls.openings" label="Vacancies" />
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-floating">
+              <input class="form-control" id="job-notice" type="number" formControlName="noticePeriodMaxDays" min="0" max="365" placeholder=" " />
+              <label for="job-notice">Maximum notice period (days)</label>
+            </div>
+            <app-field-error [control]="form.controls.noticePeriodMaxDays" label="Maximum notice period" />
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-floating">
+              <input class="form-control" id="job-deadline" type="date" formControlName="applicationDeadline" [min]="today" placeholder=" " />
+              <label for="job-deadline">Application deadline (optional)</label>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch" id="job-confidential" formControlName="confidential" />
+              <label class="form-check-label" for="job-confidential">Confidential requirement (hide company name from candidates)</label>
+            </div>
+            <div class="form-text">Candidates will see “Veejee Services client (confidential)” instead of your company name.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card section-card">
+      <div class="card-header"><span class="step">2</span><h2 class="h6 mb-0">Description</h2><i class="bi bi-text-paragraph ms-auto" aria-hidden="true"></i></div>
+      <div class="card-body">
+        <div class="row g-3 align-items-start">
+          <div class="col-12">
+            <div class="form-floating">
+              <textarea class="form-control" id="job-description" formControlName="description" placeholder=" " required maxlength="10000" style="height: 12rem"></textarea>
+              <label for="job-description">Job description</label>
+            </div>
+            <div class="form-text">At least 30 characters. Describe the role, team and what success looks like.</div>
+            <app-field-error [control]="form.controls.description" label="Job description" />
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-floating">
+              <textarea class="form-control" id="job-resp" formControlName="responsibilities" placeholder=" " style="height: 8rem"></textarea>
+              <label for="job-resp">Responsibilities</label>
+            </div>
+            <div class="form-text">One per line.</div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-floating">
+              <textarea class="form-control" id="job-req" formControlName="requirements" placeholder=" " style="height: 8rem"></textarea>
+              <label for="job-req">Requirements</label>
+            </div>
+            <div class="form-text">One per line.</div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-floating">
+              <textarea class="form-control" id="job-qual" formControlName="qualifications" placeholder=" " style="height: 8rem"></textarea>
+              <label for="job-qual">Qualifications</label>
+            </div>
+            <div class="form-text">One per line, e.g. "B.E. / B.Tech in any discipline".</div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-floating">
+              <input class="form-control" id="job-skills" formControlName="skills" placeholder=" " />
+              <label for="job-skills">Skills</label>
+            </div>
+            <div class="form-text">Comma separated, e.g. Angular, TypeScript, REST APIs.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card section-card">
+      <div class="card-header"><span class="step">3</span><h2 class="h6 mb-0">Locations</h2>
+        <button class="btn btn-outline-primary btn-sm ms-auto" type="button" (click)="addLocation()">
+          <i class="bi bi-geo-alt" aria-hidden="true"></i>Add location
+        </button>
+      </div>
+      <div class="card-body d-grid gap-3" formArrayName="locations">
+        @for (loc of locations.controls; track loc; let i = $index) {
+          <fieldset class="loc" [formGroupName]="i">
+            <legend class="loc-legend"><i class="bi bi-pin-map-fill" aria-hidden="true"></i>Location {{ i + 1 }}</legend>
+            <div class="row g-3 align-items-start">
+              <div class="col-12 col-md-4">
+                <div class="form-floating">
+                  <input class="form-control" [id]="'loc-city-' + i" formControlName="city" placeholder=" " required />
+                  <label [for]="'loc-city-' + i">City</label>
+                </div>
+                <app-field-error [control]="loc.controls.city" label="City" />
+              </div>
+              <div class="col-12 col-md-4">
+                <div class="form-floating">
+                  <input class="form-control" [id]="'loc-state-' + i" formControlName="state" placeholder=" " />
+                  <label [for]="'loc-state-' + i">State</label>
+                </div>
+              </div>
+              <div class="col-12 col-md-4">
+                <div class="d-flex gap-2 align-items-start">
+                  <div class="flex-grow-1">
+                    <div class="form-floating">
+                      <input class="form-control" [id]="'loc-country-' + i" formControlName="country" placeholder=" " required />
+                      <label [for]="'loc-country-' + i">Country</label>
+                    </div>
+                    <app-field-error [control]="loc.controls.country" label="Country" />
+                  </div>
+                  @if (locations.length > 1) {
+                    <button class="btn btn-outline-danger btn-icon mt-1" type="button" (click)="removeLocation(i)" [attr.aria-label]="'Remove location ' + (i + 1)">
+                      <i class="bi bi-trash" aria-hidden="true"></i>
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+          </fieldset>
+        }
+      </div>
+    </section>
+
+    <section class="card section-card">
+      <div class="card-header"><span class="step">4</span><h2 class="h6 mb-0">Experience &amp; salary</h2><i class="bi bi-cash-coin ms-auto" aria-hidden="true"></i></div>
+      <div class="card-body">
+        <div class="row g-3 align-items-start" formGroupName="experience">
+          <div class="col-12 col-md-6">
+            <div class="form-floating">
+              <input class="form-control" id="exp-min" type="number" formControlName="min" min="0" max="50" placeholder=" " required />
+              <label for="exp-min">Minimum experience (years)</label>
+            </div>
+            <app-field-error [control]="form.controls.experience.controls.min" label="Minimum experience" />
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="form-floating">
+              <input class="form-control" id="exp-max" type="number" formControlName="max" min="0" max="50" placeholder=" " required />
+              <label for="exp-max">Maximum experience (years)</label>
+            </div>
+            <app-field-error [control]="form.controls.experience.controls.max" label="Maximum experience" />
+          </div>
+        </div>
+        @if (form.controls.experience.hasError('minGreaterThanMax')) {
+          <div class="invalid-feedback d-block" role="alert">Minimum experience cannot be greater than maximum experience.</div>
+        }
+
+        <hr class="my-4" />
+        <div formGroupName="salary">
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" role="switch" id="sal-disclosed" formControlName="disclosed" />
+            <label class="form-check-label" for="sal-disclosed">Show salary to candidates</label>
+          </div>
+          <div class="row g-3 align-items-start">
+            <div class="col-12 col-md-4">
+              <div class="form-floating">
+                <input class="form-control" id="sal-min" type="number" formControlName="min" min="0" placeholder=" " />
+                <label for="sal-min">Minimum salary (₹)</label>
+              </div>
+              <app-field-error [control]="form.controls.salary.controls.min" label="Minimum salary" />
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="form-floating">
+                <input class="form-control" id="sal-max" type="number" formControlName="max" min="0" placeholder=" " />
+                <label for="sal-max">Maximum salary (₹)</label>
+              </div>
+              <app-field-error [control]="form.controls.salary.controls.max" label="Maximum salary" />
+            </div>
+            <div class="col-12 col-md-4">
+              <div class="form-floating">
+                <select class="form-select" id="sal-period" formControlName="period">
+                  <option value="yearly">Per year</option>
+                  <option value="monthly">Per month</option>
+                </select>
+                <label for="sal-period">Salary period</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-text">Leave the amounts empty if you prefer not to state a range.</div>
+        </div>
+        @if (form.controls.salary.hasError('minGreaterThanMax')) {
+          <div class="invalid-feedback d-block" role="alert">Minimum salary cannot be greater than maximum salary.</div>
+        }
+      </div>
+    </section>
+
+    <div class="action-bar">
+      <a class="btn btn-link" routerLink="/employer/requirements">Cancel</a>
+      @if (!isEdit()) {
+        <button class="btn btn-outline-primary" type="button" (click)="save('draft')" [disabled]="saving()"><i class="bi bi-save" aria-hidden="true"></i>Save draft</button>
+        <button class="btn btn-gold" type="submit" [disabled]="saving() || submitBlocked()">
+          @if (saving()) { <span class="spinner-border spinner-border-sm" aria-hidden="true"></span> } @else { <i class="bi bi-send" aria-hidden="true"></i> }
+          Submit for approval
+        </button>
+      } @else {
+        <button class="btn btn-outline-primary" type="submit" [disabled]="saving()"><i class="bi bi-check2" aria-hidden="true"></i>Save changes</button>
+        @if (canSubmit()) {
+          <button class="btn btn-gold" type="button" (click)="save('saveSubmit')" [disabled]="saving() || submitBlocked()"><i class="bi bi-send" aria-hidden="true"></i>Save &amp; submit</button>
+        }
+      }
+    </div>
+  </form>
+}

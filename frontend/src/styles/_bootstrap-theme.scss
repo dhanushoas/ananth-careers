@@ -1,0 +1,144 @@
+// Bootstrap 5.3 themed for Veejee Services (navy / white / gold).
+@import 'bootstrap/scss/functions';
+
+$gold: #F7821B;
+$navy: #0B2A5B;
+
+$primary: $navy;
+$secondary: #48566d;
+$success: #146c43;
+$info: #1d4f91;
+$warning: #F7821B;
+$danger: #b42318;
+$light: #f3f6fb;
+$dark: #0A1F44;
+
+$body-bg: #f6f8fb;
+$body-color: #142034;
+$body-secondary-color: #48566d;
+$border-color: #dfe5ee;
+$link-color: #1D4380;
+$link-hover-color: $navy;
+$link-underline-offset: 2px;
+
+$font-family-sans-serif: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+$headings-font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+$headings-font-weight: 700;
+$headings-color: $navy;
+$font-size-base: 1rem;
+
+$border-radius: 0.625rem;
+$border-radius-sm: 0.5rem;
+$border-radius-lg: 1rem;
+$border-radius-xl: 1.5rem;
+
+$enable-shadows: false;
+$enable-negative-margins: true;
+$min-contrast-ratio: 3;
+
+// Inputs & buttons: 48px controls, 44px+ buttons (touch friendly)
+$input-btn-padding-y: 0.6875rem;
+$input-btn-padding-x: 1rem;
+$input-btn-focus-width: 0.2rem;
+$input-btn-focus-color-opacity: 0.35;
+$input-btn-focus-color: rgba($gold, $input-btn-focus-color-opacity);
+$input-border-color: #c3ccda;
+$input-focus-border-color: $gold;
+$input-placeholder-color: #7a869b;
+$form-label-font-weight: 600;
+$form-floating-height: 3.5rem;
+$form-floating-label-opacity: 0.75;
+$form-check-input-width: 1.25em;
+$form-switch-width: 2.25em;
+$form-feedback-font-size: 0.85rem;
+$btn-font-weight: 600;
+$btn-padding-y: 0.625rem;
+$btn-padding-x: 1.125rem;
+$btn-padding-y-sm: 0.375rem;
+$btn-padding-x-sm: 0.75rem;
+
+$card-border-color: #dfe5ee;
+$card-border-radius: 1rem;
+$card-cap-bg: #ffffff;
+$card-spacer-y: 1.25rem;
+$card-spacer-x: 1.25rem;
+
+$modal-content-border-radius: 1rem;
+$modal-backdrop-bg: #0A1F44;
+$modal-backdrop-opacity: 0.55;
+$offcanvas-backdrop-bg: #0A1F44;
+$offcanvas-backdrop-opacity: 0.55;
+
+$dropdown-border-color: #dfe5ee;
+$dropdown-link-active-bg: $navy;
+$dropdown-padding-y: 0.375rem;
+$dropdown-item-padding-y: 0.5rem;
+
+$nav-tabs-link-active-color: $navy;
+$nav-pills-link-active-bg: $navy;
+$nav-link-color: #48566d;
+$nav-link-hover-color: $navy;
+
+$pagination-color: $navy;
+$pagination-active-bg: $navy;
+$pagination-active-border-color: $navy;
+$pagination-border-radius: 0.5rem;
+
+$table-cell-padding-y: 0.75rem;
+$table-cell-padding-x: 1rem;
+$table-th-font-weight: 600;
+$table-striped-bg-factor: 0.03;
+
+$badge-font-weight: 600;
+$badge-border-radius: 999px;
+$badge-padding-x: 0.65em;
+
+$progress-bg: #e6ecf5;
+$progress-bar-bg: $navy;
+$progress-border-radius: 999px;
+
+$toast-max-width: 380px;
+$toast-border-radius: 0.75rem;
+
+$accordion-button-active-bg: #f3f6fb;
+$accordion-button-active-color: $navy;
+
+@import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/variables-dark';
+
+$theme-colors: map-merge($theme-colors, ('gold': $gold, 'navy': $navy));
+
+@import 'bootstrap/scss/maps';
+@import 'bootstrap/scss/mixins';
+@import 'bootstrap/scss/utilities';
+
+@import 'bootstrap/scss/root';
+@import 'bootstrap/scss/reboot';
+@import 'bootstrap/scss/type';
+@import 'bootstrap/scss/images';
+@import 'bootstrap/scss/containers';
+@import 'bootstrap/scss/grid';
+@import 'bootstrap/scss/tables';
+@import 'bootstrap/scss/forms';
+@import 'bootstrap/scss/buttons';
+@import 'bootstrap/scss/transitions';
+@import 'bootstrap/scss/dropdown';
+@import 'bootstrap/scss/button-group';
+@import 'bootstrap/scss/nav';
+@import 'bootstrap/scss/navbar';
+@import 'bootstrap/scss/card';
+@import 'bootstrap/scss/accordion';
+@import 'bootstrap/scss/breadcrumb';
+@import 'bootstrap/scss/pagination';
+@import 'bootstrap/scss/badge';
+@import 'bootstrap/scss/alert';
+@import 'bootstrap/scss/progress';
+@import 'bootstrap/scss/list-group';
+@import 'bootstrap/scss/close';
+@import 'bootstrap/scss/toasts';
+@import 'bootstrap/scss/modal';
+@import 'bootstrap/scss/spinners';
+@import 'bootstrap/scss/offcanvas';
+@import 'bootstrap/scss/placeholders';
+@import 'bootstrap/scss/helpers';
+@import 'bootstrap/scss/utilities/api';

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+storage/
+.env
+.env.*
+!.env.example
+*.log
+tests/.mongo-uri
+.mongo-data/
