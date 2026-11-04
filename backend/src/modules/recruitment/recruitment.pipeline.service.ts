@@ -75,7 +75,7 @@ export async function getRequirement(id: string) {
 export async function assignRequirement(auth: AuthContext, id: string, recruiterUserId: string | null, actor: Actor) {
   if (!hasPermission(auth, 'candidates:assign') && recruiterUserId !== auth.userId) throw new ForbiddenError('Only administrators can assign requirements to other recruiters');
   if (recruiterUserId && !(await Recruiter.exists({ user: recruiterUserId, active: true }))) throw new ValidationError('Choose an active Veejee Services recruiter');
-  const job = await Job.findOneAndUpdate({ _id: id, deletedAt: null }, { assignedRecruiter: recruiterUserId }, { new: true });
+  const job = await Job.findOneAndUpdate({ _id: id, deletedAt: null }, { assignedRecruiter: recruiterUserId }, { returnDocument: 'after' });
   if (!job) throw new NotFoundError('Requirement');
   if (recruiterUserId && recruiterUserId !== auth.userId) {
     await notify(recruiterUserId, { type: 'requirement.assigned', title: 'Requirement assigned to you', message: `${job.title} (${job.companyName})`, link: `/recruiter/requirements/${job._id}` });

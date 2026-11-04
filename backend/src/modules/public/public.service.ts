@@ -45,7 +45,7 @@ export async function listNotifications(userId: string, unread: boolean, page: n
 export const unreadCount = async (userId: string) => ({ count: await Notification.countDocuments({ user: userId, readAt: null }) });
 
 export async function markRead(userId: string, id: string) {
-  const n = await Notification.findOneAndUpdate({ _id: id, user: userId }, { readAt: new Date() }, { new: true });
+  const n = await Notification.findOneAndUpdate({ _id: id, user: userId }, { readAt: new Date() }, { returnDocument: 'after' });
   if (!n) throw new NotFoundError('Notification');
   return n;
 }

@@ -25,7 +25,7 @@ import { verifyPassword } from '../auth/auth.service';
 import { removeResumeFile } from '../resumes/resumes.service';
 
 export async function updateMe(userId: string, input: { name?: string; mobile?: string }) {
-  const user = await User.findByIdAndUpdate(userId, input, { new: true, runValidators: true });
+  const user = await User.findByIdAndUpdate(userId, input, { returnDocument: 'after', runValidators: true });
   if (!user) throw new NotFoundError('Account');
   return { user };
 }
@@ -65,7 +65,7 @@ export async function getAvatar(auth: AuthContext, userId: string) {
 }
 
 export async function updateConsent(userId: string, marketingEmails: boolean, actor: Actor) {
-  const user = await User.findByIdAndUpdate(userId, { 'consent.marketingEmails': marketingEmails }, { new: true });
+  const user = await User.findByIdAndUpdate(userId, { 'consent.marketingEmails': marketingEmails }, { returnDocument: 'after' });
   await audit(actor, 'user.consent', 'User', userId, { marketingEmails });
   return { user };
 }

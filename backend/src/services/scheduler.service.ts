@@ -18,7 +18,7 @@ export async function sendInterviewReminders(now = new Date()) {
     const iv = await Interview.findOneAndUpdate(
       { status: { $in: ['scheduled', 'rescheduled'] }, scheduledAt: { $gt: now, $lte: horizon }, reminderSentAt: null },
       { reminderSentAt: now },
-      { new: true },
+      { returnDocument: 'after' },
     );
     if (!iv) break;
     const [user, job, employer] = await Promise.all([User.findById(iv.candidate).select('name email'), Job.findById(iv.job).select('title'), Employer.findById(iv.employer).select('companyName')]);

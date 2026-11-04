@@ -207,5 +207,5 @@ const settingsSchema = new Schema<IPlatformSettings>(
 export const PlatformSettings = model<IPlatformSettings>('PlatformSettings', settingsSchema, 'platform_settings');
 
 export async function getSettings() {
-  return PlatformSettings.findOneAndUpdate({ key: 'global' }, { $setOnInsert: { key: 'global' } }, { upsert: true, new: true, setDefaultsOnInsert: true });
+  return PlatformSettings.findOneAndUpdate({ key: 'global' }, { $setOnInsert: { key: 'global' } }, { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true });
 }

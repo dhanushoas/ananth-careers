@@ -112,7 +112,7 @@ export async function processOutbox(batch = 20) {
     const job = await EmailOutbox.findOneAndUpdate(
       { status: 'pending', nextAttemptAt: { $lte: new Date() } },
       { status: 'sending' },
-      { sort: { nextAttemptAt: 1 }, new: true },
+      { sort: { nextAttemptAt: 1 }, returnDocument: 'after' },
     );
     if (!job) break;
     await deliver(String(job._id));

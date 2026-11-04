@@ -315,7 +315,7 @@ export async function moderateJob(id: string, action: 'approve' | 'reject', reas
 }
 
 export async function setJobFeatured(id: string, featured: boolean, actor: Actor) {
-  const job = await Job.findOneAndUpdate({ _id: id, deletedAt: null }, { featured }, { new: true });
+  const job = await Job.findOneAndUpdate({ _id: id, deletedAt: null }, { featured }, { returnDocument: 'after' });
   if (!job) throw new NotFoundError('Requirement');
   await audit(actor, 'job.featured', 'Job', id, { featured });
   return job;
@@ -348,7 +348,7 @@ export async function listEnquiries(q: Page & { status?: string }) {
 }
 
 export async function updateEnquiry(id: string, input: { status?: 'new' | 'in_progress' | 'resolved'; notes?: string }, auth: AuthContext, actor: Actor) {
-  const e = await ContactEnquiry.findByIdAndUpdate(id, { ...input, handledBy: auth.userId }, { new: true });
+  const e = await ContactEnquiry.findByIdAndUpdate(id, { ...input, handledBy: auth.userId }, { returnDocument: 'after' });
   if (!e) throw new NotFoundError('Enquiry');
   await audit(actor, 'enquiry.update', 'ContactEnquiry', id, input);
   return e;
@@ -362,7 +362,7 @@ export async function listEmails(q: Page & { status?: string }) {
 }
 
 export async function retryEmail(id: string, actor: Actor) {
-  const e = await EmailOutbox.findOneAndUpdate({ _id: id, status: 'failed' }, { status: 'pending', attempts: 0, nextAttemptAt: new Date() }, { new: true }).select('-html -text');
+  const e = await EmailOutbox.findOneAndUpdate({ _id: id, status: 'failed' }, { status: 'pending', attempts: 0, nextAttemptAt: new Date() }, { returnDocument: 'after' }).select('-html -text');
   if (!e) throw new InvalidStateError('Only failed emails can be retried');
   await audit(actor, 'email.retry', 'EmailOutbox', id);
   return e;
@@ -371,7 +371,7 @@ export async function retryEmail(id: string, actor: Actor) {
 // ── Content & settings ──────────────────────────────────────────────────────
 
 export async function putContent(key: (typeof CONTENT_KEYS)[number], value: unknown, auth: AuthContext, actor: Actor) {
-  const doc = await SiteContent.findOneAndUpdate({ key }, { value, updatedBy: auth.userId }, { upsert: true, new: true });
+  const doc = await SiteContent.findOneAndUpdate({ key }, { value, updatedBy: auth.userId }, { upsert: true, returnDocument: 'after' });
   await audit(actor, 'content.update', 'SiteContent', key);
   return { key, value: doc.value, updatedAt: doc.updatedAt };
 }

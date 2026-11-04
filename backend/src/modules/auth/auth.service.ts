@@ -134,7 +134,7 @@ export async function registerEmployer(
 async function consumeToken<T extends typeof EmailVerificationToken | typeof PasswordResetToken>(model: T, raw: string, purpose?: 'reset' | 'invite') {
   const filter: Record<string, unknown> = { tokenHash: sha256(raw), usedAt: null, expiresAt: { $gt: new Date() } };
   if (purpose) filter.purpose = purpose;
-  const doc = await (model as typeof PasswordResetToken).findOneAndUpdate(filter, { usedAt: new Date() }, { new: true });
+  const doc = await (model as typeof PasswordResetToken).findOneAndUpdate(filter, { usedAt: new Date() }, { returnDocument: 'after' });
   if (!doc) throw new AppError(400, 'INVALID_TOKEN', 'This link is invalid or has expired. Please request a new one.');
   return doc;
 }

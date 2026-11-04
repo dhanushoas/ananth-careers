@@ -24,10 +24,10 @@ async function seedTaxonomy() {
   const industries = [];
   for (const [order, i] of INDUSTRIES.entries()) {
     const slug = slugify(i.name);
-    const ind = await Industry.findOneAndUpdate({ slug }, { $setOnInsert: { name: i.name, slug, icon: i.icon, description: i.description, order, active: true } }, { upsert: true, new: true });
+    const ind = await Industry.findOneAndUpdate({ slug }, { $setOnInsert: { name: i.name, slug, icon: i.icon, description: i.description, order, active: true } }, { upsert: true, returnDocument: 'after' });
     const cats = [];
     for (const c of i.categories) {
-      cats.push(await JobCategory.findOneAndUpdate({ industry: ind._id, slug: slugify(c) }, { $setOnInsert: { name: c, industry: ind._id, slug: slugify(c), active: true } }, { upsert: true, new: true }));
+      cats.push(await JobCategory.findOneAndUpdate({ industry: ind._id, slug: slugify(c) }, { $setOnInsert: { name: c, industry: ind._id, slug: slugify(c), active: true } }, { upsert: true, returnDocument: 'after' }));
     }
     industries.push({ ind, cats });
   }
@@ -303,8 +303,10 @@ export async function runSeed(opts: { demo: boolean; indexes?: boolean }) {
   await getSettings();
   const adminEmail = opts.demo ? `admin@${DEMO_DOMAIN}` : process.env.SEED_ADMIN_EMAIL;
   const adminPassword = opts.demo ? DEMO_PASSWORD : process.env.SEED_ADMIN_PASSWORD;
-  if (adminEmail && adminPassword) {
-    if (!opts.demo && adminPassword.length < 12) throw new Error('SEED_ADMIN_PASSWORD must be at least 12 characters');
+  if (adminEmail && adminPassword && !opts.demo && adminPassword.length < 12) {
+    // Don't take the whole service down over the bootstrap admin – start without it and say why.
+    logger.error('SEED_ADMIN_PASSWORD must be at least 12 characters – administrator NOT created. Update it in your host settings and restart.');
+  } else if (adminEmail && adminPassword) {
     await ensureUser({ name: process.env.SEED_ADMIN_NAME ?? 'Veejee Services Administrator', email: adminEmail.toLowerCase(), mobile: process.env.SEED_ADMIN_MOBILE ?? '9000000000', role: 'admin', password: adminPassword, permissions: ['*'] });
     logger.info(`Super administrator ensured: ${adminEmail}`);
   } else logger.warn('SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD not set – no administrator created');
