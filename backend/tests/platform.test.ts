@@ -98,3 +98,10 @@ describe('privacy rights (DPDP)', () => {
     await api().post('/api/v1/auth/login').send({ email: 'leaving@example.com', password: 'Secret123' }).expect(401);
   });
 });
+
+describe('API root', () => {
+  it('answers browsers with a friendly landing response', async () => {
+    const r = await api().get('/').expect(200);
+    expect(r.body.data).toMatchObject({ name: 'Veejee Services API', docs: '/api/docs', api: '/api/v1' });
+  });
+});

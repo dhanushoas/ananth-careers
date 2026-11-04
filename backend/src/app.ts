@@ -72,6 +72,10 @@ export function createApp() {
     sendSuccess(res, { status: db === 'up' ? 'ok' : 'degraded', db, uptime: Math.round(process.uptime()), version: VERSION }, 'Health check', db === 'up' ? 200 : 503);
   };
   app.get('/health', health);
+  // Friendly landing response for people who open the API address in a browser.
+  app.get('/', (_req, res) =>
+    sendSuccess(res, { name: 'Veejee Services API', version: VERSION, website: env.FRONTEND_URL, docs: '/api/docs', health: '/health', api: '/api/v1' }, 'Veejee Services API is running'),
+  );
 
   const api = Router();
   api.get('/health', health);
