@@ -7,7 +7,7 @@ import { env } from '../config/env';
  */
 export const logger = pino({
   level: env.isTest ? 'silent' : env.LOG_LEVEL,
-  base: { service: 'ananth-api' },
+  base: { service: 'veejee-api' },
   redact: {
     paths: [
       'req.headers.authorization',

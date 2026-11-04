@@ -4,12 +4,16 @@ import { logger } from '../common/logger';
 
 let listenersAttached = false;
 
+/** One-line error summary – driver errors embed huge topology dumps that flood hosted logs. */
+const summarize = (err: unknown) => String((err as Error)?.message ?? err).split('\n')[0]!.slice(0, 300);
+const HINT = 'Check MONGODB_URI (user, password, /veejee database) and Atlas Network Access – hosts without fixed IPs (e.g. Render free) need 0.0.0.0/0';
+
 export async function connectDatabase(uri = env.MONGODB_URI) {
   if (!listenersAttached) {
     listenersAttached = true;
     mongoose.connection.on('disconnected', () => logger.warn('MongoDB disconnected – driver will retry automatically'));
     mongoose.connection.on('reconnected', () => logger.info('MongoDB reconnected'));
-    mongoose.connection.on('error', (err) => logger.error({ err }, 'MongoDB connection error'));
+    mongoose.connection.on('error', (err) => logger.error({ error: summarize(err) }, 'MongoDB connection error'));
   }
   const maxAttempts = env.isTest ? 1 : 10;
   for (let attempt = 1; ; attempt++) {
@@ -25,7 +29,7 @@ export async function connectDatabase(uri = env.MONGODB_URI) {
     } catch (err) {
       if (attempt >= maxAttempts) throw err;
       const delay = Math.min(30_000, 1000 * 2 ** attempt);
-      logger.error({ err, attempt }, `MongoDB connection failed, retrying in ${delay}ms`);
+      logger.error({ error: summarize(err), attempt, hint: HINT }, `MongoDB connection failed, retrying in ${delay}ms`);
       await new Promise((r) => setTimeout(r, delay));
     }
   }
