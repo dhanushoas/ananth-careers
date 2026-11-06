@@ -53,3 +53,8 @@ services:
         sync: false # ≥ 12 characters
       - key: SEED_ADMIN_MOBILE
         sync: false
+      # Optional demo data (add in the dashboard only when wanted – not part of the Blueprint):
+      #   SEED_DEMO_DATA=true    → on next start, load demo companies, jobs, candidates, pipeline, interviews… (idempotent)
+      #   DEMO_PASSWORD=<12+ chars> → password for every demo account (…@veejee.example); no demo admin is created
+      #   SEED_DEMO_DATA=remove  → on next start, delete all demo data again (real data untouched)
+      # Delete SEED_DEMO_DATA afterwards. Demo emails go to the reserved .example domain and are never sent.

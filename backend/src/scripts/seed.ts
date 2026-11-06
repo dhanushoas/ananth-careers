@@ -11,11 +11,12 @@ import { connectDatabase } from '../config/db';
 import { CONSENT_VERSION } from '../common/constants';
 import { slugify, uniqueSlug } from '../common/crypto';
 import { logger } from '../common/logger';
-import { Application, Candidate, Consent, Employer, Industry, Job, JobCategory, Recruiter, Resume, Shortlist, Submission, User, getSettings } from '../models';
+import { Application, AuditLog, Candidate, Consent, ContactEnquiry, EmailOutbox, Employer, Industry, Interview, InterviewFeedback, Job, JobCategory, Notification, Recruiter, RecruitmentNote, RefreshSession, Resume, Shortlist, Submission, Testimonial, User, getSettings } from '../models';
 import { hashPassword } from '../modules/auth/auth.service';
 import { storage } from '../services/storage/storage.service';
 import { scoreCandidate } from '../services/matching.service';
 import { DEMO_COMPANIES, INDUSTRIES, demoResumePdf, jobDescription } from './seed-data';
+import { DEMO_ADMIN_NOTIFICATIONS, DEMO_TESTIMONIAL_QUOTES, seedDemoExtras } from './seed-extras';
 
 export const DEMO_PASSWORD = 'Veejee@2026';
 const DEMO_DOMAIN = 'veejee.example';
@@ -103,7 +104,7 @@ const DEMO_CANDIDATES = [
   },
 ] as const;
 
-async function seedDemo(taxonomy: Awaited<ReturnType<typeof seedTaxonomy>>) {
+async function seedDemo(taxonomy: Awaited<ReturnType<typeof seedTaxonomy>>, password: string, live: boolean) {
   const admin = await User.findOne({ role: 'admin' });
   // Veejee Services recruitment team
   const recruiters = [];
@@ -111,7 +112,7 @@ async function seedDemo(taxonomy: Awaited<ReturnType<typeof seedTaxonomy>>) {
     { name: 'Arjun Mehta', email: `recruiter@${DEMO_DOMAIN}`, designation: 'Senior Recruitment Consultant', spec: [0, 10] },
     { name: 'Divya Nair', email: `recruiter2@${DEMO_DOMAIN}`, designation: 'Recruitment Consultant', spec: [1, 2, 3, 6] },
   ].entries()) {
-    const user = await ensureUser({ name: r.name, email: r.email, mobile: `98765000${10 + i}`, role: 'recruiter', password: DEMO_PASSWORD });
+    const user = await ensureUser({ name: r.name, email: r.email, mobile: `98765000${10 + i}`, role: 'recruiter', password });
     if (!(await Recruiter.exists({ user: user._id }))) {
       await Recruiter.create({ user: user._id, designation: r.designation, employeeCode: `VS-R00${i + 1}`, specializations: r.spec.map((x) => taxonomy[x]!.ind._id), createdBy: admin!._id });
     }
@@ -121,7 +122,7 @@ async function seedDemo(taxonomy: Awaited<ReturnType<typeof seedTaxonomy>>) {
   // Client companies & requirements
   for (const [ci, c] of DEMO_COMPANIES.entries()) {
     const ownerEmail = ci === 0 ? `employer@${DEMO_DOMAIN}` : `hr@${slugify(c.name)}.example`;
-    const owner = await ensureUser({ name: ci === 0 ? 'Priya Sharma' : `${c.name} HR`, email: ownerEmail, mobile: `98${String(10000000 + ci).padStart(8, '0')}`, role: 'employer', password: DEMO_PASSWORD });
+    const owner = await ensureUser({ name: ci === 0 ? 'Priya Sharma' : `${c.name} HR`, email: ownerEmail, mobile: `98${String(10000000 + ci).padStart(8, '0')}`, role: 'employer', password });
     let employer = await Employer.findOne({ owner: owner._id });
     if (!employer) {
       employer = await Employer.create({
@@ -177,7 +178,7 @@ async function seedDemo(taxonomy: Awaited<ReturnType<typeof seedTaxonomy>>) {
   // Candidates
   const profiles = [];
   for (const [i, d] of DEMO_CANDIDATES.entries()) {
-    const user = await ensureUser({ name: d.name, email: d.email, mobile: `98765001${String(i).padStart(2, '0')}`, role: 'candidate', password: DEMO_PASSWORD });
+    const user = await ensureUser({ name: d.name, email: d.email, mobile: `98765001${String(i).padStart(2, '0')}`, role: 'candidate', password });
     let c = await Candidate.findOne({ user: user._id });
     if (!c) {
       c = new Candidate({
@@ -205,7 +206,16 @@ async function seedDemo(taxonomy: Awaited<ReturnType<typeof seedTaxonomy>>) {
         stage: 'registered',
         stageHistory: [{ stage: 'registered', visibleToCandidate: true, at: new Date(Date.now() - 20 * 86400_000) }],
       });
-      const pdf = demoResumePdf(d.name);
+      const pdf = demoResumePdf(d.name, {
+        email: d.email,
+        mobile: user.mobile,
+        location: `${d.city}, ${d.state}`,
+        headline: d.headline,
+        summary: `${d.headline} with ${d.years ? `${d.years} years of hands-on experience` : 'strong academic grounding and internship projects'}. Open to ${d.roles.join(' / ')} roles in ${d.city} and nearby. Notice period: ${d.notice ? `${d.notice} days` : 'immediate'}.`,
+        skills: d.skills.map(([s]) => s),
+        experience: d.exp ? [`${d.exp[0]} - ${d.exp[1]}, ${d.city} (${new Date().getFullYear() - d.years} - present)`, 'Delivered projects end-to-end, worked closely with stakeholders and mentored juniors.'] : ['Final-year academic project and a 3-month internship (see portfolio).'],
+        education: [`${d.edu[0]}, ${d.edu[1]} - Demo University (${d.careerLevel === 'fresher' ? 2025 : 2019})`],
+      });
       const key = await storage.save('resumes', pdf, 'pdf');
       const r = await Resume.create({ owner: user._id, storageKey: key, originalName: `${d.name.replace(/\s+/g, '-')}-Resume.pdf`, mimeType: 'application/pdf', size: pdf.length, isPrimary: true });
       c.primaryResume = r._id;
@@ -289,21 +299,61 @@ async function seedDemo(taxonomy: Awaited<ReturnType<typeof seedTaxonomy>>) {
     });
     await Job.updateOne({ _id: qaJob._id }, { applicationsCount: 1 });
   }
+  await seedDemoExtras({ admin: admin!, recruiters, profiles, taxonomy, password, live });
   logger.info(
-    `Demo data ready (password "${DEMO_PASSWORD}"): admin@${DEMO_DOMAIN}, recruiter@${DEMO_DOMAIN}, recruiter2@${DEMO_DOMAIN}, employer@${DEMO_DOMAIN}, seeker@${DEMO_DOMAIN} (+7 demo candidates)`,
+    `Demo data ready (password ${live ? 'from DEMO_PASSWORD' : `"${password}"`}): ${live ? '' : `admin@${DEMO_DOMAIN}, `}recruiter@${DEMO_DOMAIN}, recruiter2@${DEMO_DOMAIN}, employer@${DEMO_DOMAIN}, seeker@${DEMO_DOMAIN} (+7 demo candidates)`,
   );
 }
 
-export async function runSeed(opts: { demo: boolean; indexes?: boolean }) {
+/**
+ * Removes every demo record: accounts on reserved `.example` domains and everything linked to them,
+ * plus the demo enquiries, testimonials, audit entries and outbox rows. Real data is never touched.
+ */
+export async function removeDemoData() {
+  const users = await User.find({ email: /\.example$/i }).distinct('_id');
+  const employers = await Employer.find({ owner: { $in: users } }).distinct('_id');
+  const jobs = await Job.find({ employer: { $in: employers } }).distinct('_id');
+  const byJobOrCandidate = { $or: [{ job: { $in: jobs } }, { candidate: { $in: users } }] };
+  const resumes = await Resume.find({ owner: { $in: users } }).select('+storageKey');
+  for (const r of resumes) await storage.remove(r.storageKey).catch(() => undefined);
+  const counts: Record<string, number> = {};
+  const del = async (name: string, model: { deleteMany: (f: never) => Promise<{ deletedCount?: number }> }, filter: Record<string, unknown>) => {
+    counts[name] = (await model.deleteMany(filter as never)).deletedCount ?? 0;
+  };
+  await del('interview_feedback', InterviewFeedback, { employer: { $in: employers } });
+  await del('interviews', Interview, byJobOrCandidate);
+  await del('submissions', Submission, byJobOrCandidate);
+  await del('shortlists', Shortlist, byJobOrCandidate);
+  await del('applications', Application, byJobOrCandidate);
+  await del('consents', Consent, { candidate: { $in: users } });
+  await del('recruitment_notes', RecruitmentNote, { $or: [{ candidate: { $in: users } }, { author: { $in: users } }] });
+  await del('notifications', Notification, { $or: [{ user: { $in: users } }, { message: { $in: DEMO_ADMIN_NOTIFICATIONS } }] });
+  await del('resumes', Resume, { owner: { $in: users } });
+  await del('candidates', Candidate, { user: { $in: users } });
+  await del('recruiters', Recruiter, { user: { $in: users } });
+  await del('jobs', Job, { _id: { $in: jobs } });
+  await del('companies', Employer, { _id: { $in: employers } });
+  await del('refresh_sessions', RefreshSession, { user: { $in: users } });
+  await del('email_outbox', EmailOutbox, { to: /\.example$/i });
+  await del('contact_enquiries', ContactEnquiry, { email: /@example\.com$/i });
+  await del('testimonials', Testimonial, { quote: { $in: DEMO_TESTIMONIAL_QUOTES } });
+  await del('audit_logs', AuditLog, { $or: [{ 'metadata.seed': true }, { actor: { $in: users } }] });
+  await del('users', User, { _id: { $in: users } });
+  logger.info({ removed: counts }, 'Demo data removed');
+}
+
+export async function runSeed(opts: { demo: boolean; indexes?: boolean; live?: boolean; demoPassword?: string }) {
   if (opts.indexes) {
     for (const m of Object.values(mongoose.models)) await m.syncIndexes();
     logger.info('Indexes synchronised');
   }
   const taxonomy = await seedTaxonomy();
   await getSettings();
-  const adminEmail = opts.demo ? `admin@${DEMO_DOMAIN}` : process.env.SEED_ADMIN_EMAIL;
-  const adminPassword = opts.demo ? DEMO_PASSWORD : process.env.SEED_ADMIN_PASSWORD;
-  if (adminEmail && adminPassword && !opts.demo && adminPassword.length < 12) {
+  // Local demo: a known demo admin. Live demo: only the real admin from SEED_ADMIN_* – never a known-password admin.
+  const localDemo = opts.demo && !opts.live;
+  const adminEmail = localDemo ? `admin@${DEMO_DOMAIN}` : process.env.SEED_ADMIN_EMAIL;
+  const adminPassword = localDemo ? DEMO_PASSWORD : process.env.SEED_ADMIN_PASSWORD;
+  if (adminEmail && adminPassword && !localDemo && adminPassword.length < 12) {
     // Don't take the whole service down over the bootstrap admin – start without it and say why.
     logger.error('SEED_ADMIN_PASSWORD must be at least 12 characters – administrator NOT created. Update it in your host settings and restart.');
   } else if (adminEmail && adminPassword) {
@@ -311,15 +361,30 @@ export async function runSeed(opts: { demo: boolean; indexes?: boolean }) {
     logger.info(`Super administrator ensured: ${adminEmail}`);
   } else logger.warn('SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD not set – no administrator created');
   if (opts.demo) {
-    if (env.isProd) throw new Error('Refusing to load demo data in production');
-    await seedDemo(taxonomy);
+    if (env.isProd && !opts.live) throw new Error('Refusing to load demo data in production');
+    const password = opts.live ? opts.demoPassword : DEMO_PASSWORD;
+    if (!password || (opts.live && password.length < 12)) throw new Error('DEMO_PASSWORD must be at least 12 characters');
+    if (!(await User.exists({ permissions: '*', status: 'active' }))) throw new Error('No administrator exists yet – demo data needs one');
+    await seedDemo(taxonomy, password, Boolean(opts.live));
   }
 }
 
 if (require.main === module) {
   const args = process.argv.slice(2);
+  // On Render the start command runs this script. SEED_DEMO_DATA=true loads demo data into the live database
+  // (accounts use DEMO_PASSWORD); SEED_DEMO_DATA=remove deletes it. A demo problem never blocks the API from starting.
+  const demoMode = (process.env.SEED_DEMO_DATA ?? '').toLowerCase();
   connectDatabase()
     .then(() => runSeed({ demo: args.includes('--demo'), indexes: args.includes('--indexes') }))
+    .then(async () => {
+      if (demoMode !== 'true' && demoMode !== 'remove') return;
+      try {
+        if (demoMode === 'remove') await removeDemoData();
+        else await runSeed({ demo: true, live: true, demoPassword: process.env.DEMO_PASSWORD });
+      } catch (err) {
+        logger.error({ err: (err as Error).message }, `SEED_DEMO_DATA=${demoMode} failed – the API starts anyway`);
+      }
+    })
     .then(() => mongoose.disconnect())
     .then(() => process.exit(0))
     .catch((err) => {

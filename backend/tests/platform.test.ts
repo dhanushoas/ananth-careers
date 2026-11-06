@@ -50,11 +50,12 @@ describe('public website', () => {
     const featured = await api().get('/api/v1/employers?featured=true').expect(200);
     expect(featured.body.data.items[0].openJobs).toBeGreaterThan(0);
 
+    const admin = (await login('admin@veejee.example')).token;
+    const newEnquiries = async () => (await api().get('/api/v1/admin/enquiries?status=new').set(bearer(admin)).expect(200)).body.data.total as number;
+    const before = await newEnquiries(); // demo seed includes sample enquiries
     await api().post('/api/v1/contact').send({ name: 'Visitor', email: 'v@example.com', subject: 'Hiring help', message: 'We need 20 drivers.', enquiryType: 'employer' }).expect(400); // consent required
     await api().post('/api/v1/contact').send({ name: 'Visitor', email: 'v@example.com', subject: 'Hiring help', message: 'We need 20 drivers.', enquiryType: 'employer', consent: true }).expect(201);
-    const admin = (await login('admin@veejee.example')).token;
-    const enq = await api().get('/api/v1/admin/enquiries?status=new').set(bearer(admin)).expect(200);
-    expect(enq.body.data.total).toBe(1);
+    expect(await newEnquiries()).toBe(before + 1);
   });
 
   it('admins edit content; testimonials need verified consent before publishing', async () => {
@@ -62,10 +63,11 @@ describe('public website', () => {
     await api().put('/api/v1/admin/content/faq').set(bearer(admin)).send({ value: { items: [{ question: 'Q?', answer: 'A.' }] } }).expect(200);
     expect((await api().get('/api/v1/content/faq')).body.data.value.items).toHaveLength(1);
 
+    const published = (await api().get('/api/v1/testimonials')).body.data.length as number; // demo seed includes sample testimonials
     const bad = await api().post('/api/v1/admin/testimonials').set(bearer(admin)).send({ name: 'R', quote: 'Great service, got hired!', consentConfirmed: false, published: true }).expect(400);
     expect(bad.body.errorCode).toBe('VALIDATION_ERROR');
     await api().post('/api/v1/admin/testimonials').set(bearer(admin)).send({ name: 'R', quote: 'Great service, got hired!', consentConfirmed: true, published: true }).expect(201);
-    expect((await api().get('/api/v1/testimonials')).body.data).toHaveLength(1);
+    expect((await api().get('/api/v1/testimonials')).body.data).toHaveLength(published + 1);
   });
 
   it('admin reports and audit logs work', async () => {
